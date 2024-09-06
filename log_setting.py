@@ -18,7 +18,7 @@ def logger_set(DEBUG_ENV:bool=False,extra:str=""):
     )
     return logger
 
-# logger = logger_set()
+logger = logger_set()
 
 # S_LOGGING_CONFIG_DEFAULTS: Dict[str, Any] = dict(  # no cov
 #     version=1,
