@@ -5,7 +5,9 @@ from datetime import datetime,time,date
 from db_control import getDBControl
 import mail_control
 import asyncio
-from log_setting import logger
+from log_setting import logger_set
+
+logger = logger_set()
 
 class AutoSign:
     def __init__(self):

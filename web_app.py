@@ -10,10 +10,12 @@ from pathlib import Path
 import os
 from core import wjcAccountSignTest
 import uvicorn
-from log_setting import logger
+from log_setting import logger_set
 from web_regControl import RegControl
 
 NOW_FILE_PATH = os.path.dirname(os.path.abspath(__file__))
+
+logger = logger_set('web')
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="web_app/build/static"), name="static")
