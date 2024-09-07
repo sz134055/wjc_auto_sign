@@ -47,6 +47,7 @@ pip install -r requirements.txt
   - `account`：推送信息将由此邮箱发送。
   - `host`：邮箱服务器
   - `token`：邮箱授权码
+- `ADDRESS_NAME`：用于签到时标注签到的位置名，非坐标，不影响签到，签到只与坐标相关。会显示在签到成功页面中的`签到位置`一栏。
 
 ### 添加数据
 
@@ -258,8 +259,47 @@ Response:
   - `"0"`：未开始
   - `"1"`：已开始
 
+### 签到
+
+- URL: 'https://ehall.uwh.edu.cn/student/content/student/sign/stu/sign'
+- METHOD: POST
+- PARAMS: 
+  - `_t_s_`：时间戳
+- DATA: 见下
+- RESPONSE-TYPE: (JSON)见下
+
+DATA:
+
+```python
+data_form = {
+  "pathFile": "",
+  "dm": "17089192567824456997", # 查询签到任务中的DM
+  "sjdm": "17112924123429681075",# 查询签到任务中的SJDM
+  "zb": "118.26641806588259,31.362924260242725", # 坐标
+  "wz": "安徽师范大学皖江学院（江北校区）附近",
+  "ly": "lbs",  # 未知，此为网页端测试结果，手机端为`wis`
+  "qdwzZt": "0",  # 未知
+  "fwwDistance": "0",    #距离签到位置距离，最新API似乎已经废弃
+  "operationType": "Update" # 签到类型，首次签到时填写`Update`不影响签到结果
+}
+```
+
+*其中坐标可使用小数点后五位的精确坐标，未测试更低精度坐标是否有影响*
+
+RESPONSE（成功签到）:
+
+```json
+{
+  "errorInfoList":[],
+  "result": true,
+  "msg": null
+}
+```
+
 ## 更新日志
 
+- 2024-09-08_Ver1.3.1:
+  - 签到位置名现在可在配置中设置
 - 2024-09-07_Ver1.3.0:
   - 修复签到失败队列逻辑
   - 增加验证码的识别与验证
