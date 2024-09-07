@@ -145,7 +145,10 @@ class DBControl:
         db = await aiosqlite.connect(self.db_path)
         cursor = await db.execute(f"SELECT * FROM users WHERE id = ?", (account,))
         user_info = await cursor.fetchone()
-        if user_info[9]>=FAIL_MAX_TRY_DAYS or ban_by_user:
+        if user_info[8]==0:
+            # 已经禁用用户
+            return True
+        elif user_info[9]>=FAIL_MAX_TRY_DAYS or ban_by_user:
             await db.execute(f"UPDATE users SET active=? WHERE id = ?", (0,account))
             await db.commit()
             logger.info(f"用户{account}被禁用")
