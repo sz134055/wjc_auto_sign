@@ -77,6 +77,10 @@ async def check_account(account:str=Form(),pswd:str=Form(),email:str=Form()):
 @app.post('/stopAccount')
 async def cancel_reg(account:str=Form(),pswd:str=Form()):
     DB = await getDBControl(DB_PATH)
+    if(await is_db_locked()):
+        logger.info(f'用户 {account} 尝试在非开放时间点取消签到注册')
+        return JSONResponse({'code':'fail','msg':f'当前时间段 ({TIME_SET["start"]} - {TIME_SET["end"]}) 无法取消，请在非此时间段再重试'})
+    
     if(await DB.is_user_exist(account) and await wjcAccountSignTest(account,pswd)):
         if await DB.deactive_user(account=account,ban_by_user=True):
             logger.info(f'用户 {account} 取消注册签到')
