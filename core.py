@@ -86,7 +86,7 @@ class WJC:
             return msg
 
     def __cap_gen(self):
-        ocr = ddddocr.DdddOcr()
+        ocr = ddddocr.DdddOcr(show_ad=False)
         try:
             res = self.s.get('https://ids.uwh.edu.cn/authserver/getCaptcha.htl?'+self.__timeGen(),headers=self.headers)
             if res.status_code == 200:
