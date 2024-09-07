@@ -25,7 +25,7 @@ MAIL_SET = {
     'token':''
 }
 
-ADDRESS_NAME = "在皖江学院附近"
+ADDRESS_NAME = "在芜湖学院附近"
 
 TIME_CHCECK_WAIT = 180  # 3分钟
 TIME_SLEEP_WAIT = 60*60*22 # 22小时
