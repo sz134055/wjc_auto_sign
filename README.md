@@ -26,14 +26,10 @@
 使用pip安装依赖：
 
 ```shell
-pip install -r requirements_web.txt
+pip install -r requirements.txt
 ```
 
-> 如果你只用于本地使用且不需要Web页面提供注册功能，可选择手动向signinInfo.db中添加数据。同时选择安装以下依赖即可：
-> 
-> ```shell
-> pip install -r requirements.txt
-> ```
+> 注意，项目采用了[ddddocr](https://github.com/sml2h3/ddddocr)来实现验证码识别，请检查你需要部署的平台是否支持此库，参考文档：[README - ddddocr](https://github.com/sml2h3/ddddocr/blob/main/README.md)
 
 ### 配置（可选）
 
@@ -122,6 +118,38 @@ API:
 - METHOD: POST
 
 上一个请求成功后携带Cookie直接访问即可，另有登录界面，需要额外密码（身份证号后六位），不推荐。
+
+### 检查是否需要验证码
+
+- URL:`https://ids.uwh.edu.cn/authserver/checkNeedCaptcha.htl`
+- METHOD: GET
+- PARAMS: 
+  - username:账号
+  - _: 时间戳，例如`1725687148153`
+
+Response:
+
+```json
+{"isNeed":true}
+```
+
+其中`isNeed`为`true`则需要携带验证码才可正常登录。
+
+### 获取验证码
+
+- URL:`https://ids.uwh.edu.cn/authserver/getCaptcha.htl`
+- METHOD: GET
+- PARAMS: 
+  - 时间戳
+
+*时间戳直接跟随在URL后，例如`
+https://ids.uwh.edu.cn/authserver/getCaptcha.htl?1725688689325`*
+
+Response: 
+`image/jpeg`图片
+
+例如：
+![](https://ids.uwh.edu.cn/authserver/getCaptcha.htl)
 
 ### 获取签到任务
 
@@ -231,6 +259,10 @@ Response:
   - `"1"`：已开始
 
 ## 更新日志
+
+- 2024-09-07_Ver1.3.0:
+  - 修复签到失败队列逻辑
+  - 增加验证码的识别与验证
 - 2024-09-01_Ver1.2.2:
   - 现在只会在签到失败后向指定的邮箱发送邮件
   - 现在前端提供取消签到任务的选项
