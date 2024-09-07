@@ -1,11 +1,8 @@
 from datetime import datetime
 import loguru
-import logging
-from typing import Dict,Any
-import sys
-def __logger_set(DEBUG_ENV:bool=False):
+def logger_set(DEBUG_ENV:bool=False,extra:str=""):
     logger = loguru.logger
-    log_file_name = f"./logs/log_{datetime.now().strftime('%Y%m%d_%H-%M-%S')}.log"
+    log_file_name = f"./logs/{extra+'_' if extra else ''}log_{datetime.now().strftime('%Y%m%d_%H-%M-%S')}.log"
 
     # 自动向屏幕输出日志，因此仅需添加文件Handler
     logger.add(
@@ -21,7 +18,7 @@ def __logger_set(DEBUG_ENV:bool=False):
     )
     return logger
 
-logger = __logger_set()
+logger = logger_set()
 
 # S_LOGGING_CONFIG_DEFAULTS: Dict[str, Any] = dict(  # no cov
 #     version=1,

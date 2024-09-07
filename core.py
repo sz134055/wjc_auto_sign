@@ -5,6 +5,7 @@ from time import time as getTime
 from requests.packages import urllib3
 from log_setting import logger
 from requests.exceptions import ConnectTimeout,Timeout
+import ddddocr
 
 urllib3.disable_warnings()
 
@@ -37,10 +38,26 @@ class WJC:
     def __timeGen(self) -> str:
         return str(getTime()).replace('.','')[:13]
 
-
     def __isNeedCap(self):
-        pass
-
+        try:
+            res = self.s.get('https://ids.uwh.edu.cn/authserver/checkNeedCaptcha.htl',
+                             headers=self.headers,
+                             params={
+                                 'username':self.account,
+                                 '_':self.__timeGen()
+                             },
+                             timeout=45
+                             )
+            if res.status_code == 200:
+                res_json = res.json()
+                logger.info(f'查询是否需要验证码成功')
+                return {'code':'ok','msg':'验证是否需要验证码成功','info':{'needCap':res_json['isNeed']}}
+            else:
+                logger.error(f'查询是否需要验证码失败 [CODE]{res.status_code}\n[CONTENT] {res.text}')
+                return {'code':'fail','msg':'查询是否需要验证码失败','info':{'code':res.status_code,'content':res.text}}
+        except ConnectTimeout or Timeout:
+            logger.error('查询是否需要验证码超时')
+            return {'code':'fail','msg':'查询是否需要验证码超时'}
     def __loginInfoGet(self):
         try:
             res = self.s.get('https://ids.uwh.edu.cn/authserver/login?service=https://ehall.uwh.edu.cn/login', headers=self.headers,timeout=45)
@@ -68,6 +85,21 @@ class WJC:
             logger.error(f"[{msg['code']}] {msg['msg']}\n{msg['info']['code']}\n{msg['info']['content']}")
             return msg
 
+    def __cap_gen(self):
+        ocr = ddddocr.DdddOcr(show_ad=False)
+        try:
+            res = self.s.get('https://ids.uwh.edu.cn/authserver/getCaptcha.htl?'+self.__timeGen(),headers=self.headers)
+            if res.status_code == 200:
+                ocr_res = ocr.classification(res.content)
+                logger.info(f'验证码识别成功 -> {ocr_res}')
+                return {'code':'ok','msg':f'验证码识别成功','info':{'cap':ocr_res}}
+            else:
+                raise ConnectTimeout
+        except ConnectTimeout or Timeout:
+            logger.error('请求验证码失败')
+            return {'code':'fail','msg':'请求验证码失败','info':{'cap':''}}
+        
+
     def login(self):
         logger.info(f"开始登录账号{self.account}")
         if not self.account or not self.pswd:
@@ -79,10 +111,16 @@ class WJC:
             logger.error(f"[{msg['code']}] {msg['msg']}")
             return msg
 
+        __need_cap = self.__isNeedCap()
+        cap = ''
+        if __need_cap['code'] == 'ok' and __need_cap['info']['needCap']:
+            cap = self.__cap_gen()['info']['cap']
+        
+
         data_form = {
             'username': self.account,
             'password': self.__pswdGen(self.pswd, self.__login_form['salt']),
-            'captcha': '',
+            'captcha': cap,
             '_eventId': 'submit',
             'cllt': 'userNameLogin',
             'dllt': 'generalLogin',

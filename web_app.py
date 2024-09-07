@@ -10,10 +10,13 @@ from pathlib import Path
 import os
 from core import wjcAccountSignTest
 import uvicorn
+#from log_setting import logger_set
 from log_setting import logger
 from web_regControl import RegControl
 
 NOW_FILE_PATH = os.path.dirname(os.path.abspath(__file__))
+
+#logger = logger_set('web')
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="web_app/build/static"), name="static")
@@ -60,11 +63,13 @@ async def check_account(account:str=Form(),pswd:str=Form(),email:str=Form()):
 
     if(await eDB.check_user(account,pswd) or await wjcAccountSignTest(account,pswd)):
         emailVCode = await eDB.updata_user(account,pswd,email)
-
+        logger.info(f'用户 {account} 尝试注册，邮箱验证码将发送至 {email}')
         res = user_mail('自动签到注册邮箱验证码',f'您的验证码为：{emailVCode}',email)
         if(res):
-            return JSONResponse(content={'code':'ok','msg':'账号验证成功'})
+            logger.info(f'验证码发送至{email}')
+            return JSONResponse(content={'code':'ok','msg':'验证码发送成功，请检查你的邮箱'})
         else:
+            logger.error(f'验证码发送至{email} 失败')
             return JSONResponse(content={'code':'fail','msg':'邮箱不存在或格式错误'})
     else:
         return JSONResponse(content={'code':'fail','msg':'账号或密码错误'})
@@ -72,12 +77,19 @@ async def check_account(account:str=Form(),pswd:str=Form(),email:str=Form()):
 @app.post('/stopAccount')
 async def cancel_reg(account:str=Form(),pswd:str=Form()):
     DB = await getDBControl(DB_PATH)
+    if(await is_db_locked()):
+        logger.info(f'用户 {account} 尝试在非开放时间点取消签到注册')
+        return JSONResponse({'code':'fail','msg':f'当前时间段 ({TIME_SET["start"]} - {TIME_SET["end"]}) 无法取消，请在非此时间段再重试'})
+    
     if(await DB.is_user_exist(account) and await wjcAccountSignTest(account,pswd)):
         if await DB.deactive_user(account=account,ban_by_user=True):
+            logger.info(f'用户 {account} 取消注册签到')
             return JSONResponse(content={'code':'ok','msg':'取消注册成功'})
         else:
+            logger.error(f'用户 {account} 取消注册签到失败')
             return JSONResponse(content={'code':'fail','msg':'取消注册失败'})
     else:
+        logger.error(f'用户 {account} 取消注册签到失败，未注册自动签到或账号密码错误')
         return JSONResponse(content={'code':'fail','msg':'未注册自动签到或账号密码错误'})
 @app.post('/emailCheck')
 async def emailCheck(account:str=Form(),emailVCode:str=Form()):
@@ -88,8 +100,10 @@ async def emailCheck(account:str=Form(),emailVCode:str=Form()):
     await eDB.init_db()
 
     if await eDB.check_email(account,emailVCode):
+        logger.info(f'用户 {account} 邮箱验证成功')
         return JSONResponse(content={'code':'ok','msg':'邮箱验证成功！'})
     else:
+        logger.error(f'用户 {account} 邮箱验证失败，验证码错误或已过期')
         return JSONResponse(content={'code':'fail','msg':'验证码错误或已过期！'})
 
 
@@ -106,8 +120,10 @@ async def submit(account:str=Form(),coordinate:str=Form()):
         DB = await getDBControl(DB_PATH)
         await DB.add_user(account,user_info['pswd'],user_info['email'],coordinate)
         user_mail('自动签到注册成功',reg_mail_gen({'account':account,'email':user_info['email'],'coordinate':coordinate}),user_info['email'])
+        logger.info(f'用户 {account} 注册成功')
         return JSONResponse(content={'code':'ok','msg':'注册成功'})
     else:
+        logger.error(f'用户 {account} 注册失败，未通过验证')
         return JSONResponse(content={'code':'fail','msg':'当前账号未通过验证'})
     
 
