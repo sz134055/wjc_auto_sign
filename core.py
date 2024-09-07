@@ -5,6 +5,7 @@ from time import time as getTime
 from requests.packages import urllib3
 from log_setting import logger
 from requests.exceptions import ConnectTimeout,Timeout
+from setting import ADDRESS_NAME
 import ddddocr
 
 urllib3.disable_warnings()
@@ -193,10 +194,10 @@ class WJC:
             "dm": dm,
             "sjdm": sjdm,
             "zb": coordinate,
-            "wz": "安徽师范大学皖江学院（江北校区）附近",
+            "wz": ADDRESS_NAME,
             "ly": "lbs",
             "qdwzZt": "0",
-            "fwwDistance": "0",    #距离签到位置距离
+            "fwwDistance": "15",    #距离签到位置距离
             "operationType": "Update"
         }
 
