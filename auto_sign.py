@@ -1,7 +1,7 @@
 from core import WJC
 from setting import TIME_SET,TIME_CHCECK_WAIT,DB_PATH,SIGN_MAX_TRY_TIMES,TIME_SLEEP_WAIT
 from queue import Queue
-from datetime import datetime,time,date
+from datetime import datetime,time,date,timedelta
 from db_control import getDBControl
 import mail_control
 import asyncio
@@ -149,7 +149,8 @@ class AutoSign:
 
                 TIME_CHCECK_WAIT = int(datetime.combine(date.today(),start_time).timestamp()-now.timestamp())
                 if TIME_CHCECK_WAIT <1:
-                    TIME_CHCECK_WAIT = 1
+                    # 冗余10秒
+                    TIME_CHCECK_WAIT = int((datetime.combine(date.today() + timedelta(days=1), time(20, 0))-datetime.now()).total_seconds())-10
 
                 if start_time <= current_time <= end_time:
                     logger.info('签到开始')
