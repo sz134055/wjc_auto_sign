@@ -25,6 +25,7 @@ class AutoSign:
     async def sign(self,account, pswd,coordinate,email,fail_try:bool=False):
         wjc = WJC(account, pswd)
         db = await getDBControl(DB_PATH)
+        info = {'code':'fail','msg':'未能签到'}
         try:
             wjc.login()
             info = wjc.getSignTask()
