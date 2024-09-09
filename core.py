@@ -203,7 +203,8 @@ class WJC:
 
         try:
             res = self.s.post(api,params=params_load, data=data_form,headers=self.headers,timeout=45)
-        except ConnectTimeout or Timeout:
+        # except ConnectTimeout or Timeout:
+        except Exception:   # 增大异常捕获范围
             logger.error('请求签到超时')
             return {'code':'fail','msg':'请求签到超时'}
         if res.status_code == 200:
