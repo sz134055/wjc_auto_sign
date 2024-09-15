@@ -1,11 +1,12 @@
-import { Flex,Steps,Typography } from 'antd';
+import { Flex,Steps,Typography,notification } from 'antd';
 import { UserAddOutlined,RobotOutlined,EnvironmentOutlined,SmileOutlined } from '@ant-design/icons';
-import { useState } from 'react';
+import { useState,useEffect } from 'react';
 import RegPage from './RegPage';
 import EmailCheckPage from './EmailCheckPage';
 import SetCoordinatesPage from './SetCoordinatesPage';
 import ResultPage from './ResultPage';
 import CancelResultPage from './CancelResultPage'
+import axios from 'axios';
 
 const { Title } = Typography;
 
@@ -18,6 +19,29 @@ export default function RegisterForm() {
     coordinates:'',
     emailVCode:''
   });
+  const [api, contextHolder] = notification.useNotification();
+  
+  useEffect(() => {
+    axios.get('/noticeGet')
+    .then(res => {
+      console.log(res.data);
+      if(Date.now() <= res.data.time){
+        api.open({
+          message: res.data.title,
+          description:res.data.content,
+          showProgress:true,
+          pauseOnHover:true,
+          placement:'top'
+        });
+
+      }
+    }).catch((error)=>{
+      console.log(error);
+    })
+  }, []);
+
+
+  
 
   return (
     <Flex vertical
@@ -25,6 +49,7 @@ export default function RegisterForm() {
       align='center'
       gap='small'
       >
+        {contextHolder}
       <Title>Auto Sign</Title>
       <Steps 
         size='small'

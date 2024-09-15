@@ -8,9 +8,16 @@ from log_setting import logger
 def getTime():
     return str(time()).replace('.','')[:13]
 
-class DBControl:
+class DBControlBase:
     def __init__(self, db_path):
         self.db_path = db_path
+
+    async def init_db(self):
+        pass
+
+class DBControl(DBControlBase):
+    def __init__(self, db_path):
+        super().__init__(db_path)
 
     async def init_db(self):
         db = await aiosqlite.connect(self.db_path)
@@ -174,8 +181,56 @@ class DBControl:
         await db.commit()
         await db.close()
 
+
+class WebDBControl(DBControlBase):
+    def __init__(self, db_path):
+        super().__init__(db_path)
+    
+    async def init_db(self):
+        db = await aiosqlite.connect(self.db_path)
+        await db.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS notice(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                content TEXT NOT NULL,
+                time INTEGER NOT NULL
+            );
+
+            '''
+        )
+        await db.commit()
+        await db.close()
+
+    async def add_notice(self,title:str,content:str,time:int):
+        db = await aiosqlite.connect(self.db_path)
+        await db.execute(
+            f"INSERT INTO notice(title,content,time) VALUES(?,?,?)",
+            (title,content,time)
+        )
+        await db.commit()
+        await db.close()
+
+    async def get_notice(self) -> dict:
+        db = await aiosqlite.connect(self.db_path)
+        # 总是获取最后一个通知
+        cursor = await db.execute(f"SELECT * FROM notice ORDER BY id DESC LIMIT 1")
+        notice_info = await cursor.fetchone()
+        await db.close()
+        return {
+            'title': notice_info[1],
+            'content': notice_info[2],
+            'time': notice_info[3]
+        }
+
+
 async def getDBControl(db_path):
     DB = DBControl(db_path)
+    await DB.init_db()
+    return DB
+
+async def getWebDBControl(db_path:str='webNotice.db'):
+    DB = WebDBControl(db_path)
     await DB.init_db()
     return DB
 
