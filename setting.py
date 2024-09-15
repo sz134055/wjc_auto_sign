@@ -11,7 +11,8 @@ REMOTE_API = {
     'update':''
 }
 
-REMOTE_API_TOKEN = '7aF9dPcE3bR2sW1xV6mG5tN8yH4qJ0lK'
+# 向网站推送通知信息需要使用
+REMOTE_API_TOKEN = ''
 
 TIME_SET = {
     'start': '20:30',  

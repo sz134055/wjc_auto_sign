@@ -82,8 +82,6 @@ python web_app.py
 
 ## 开发说明
 
-2024年学校官网及统一认证平台功能逐步上线正常，网页中终于可通过一些手段进入，便于抓包逆向。
-
 签到步骤：
 
 - 根据设置的账号密码登录获取必要的Token或Cookies
@@ -122,6 +120,8 @@ API:
 
 ### 检查是否需要验证码
 
+**2024-09-13时发现已不再使用，与字符验证码配套使用**
+
 - URL:`https://ids.uwh.edu.cn/authserver/checkNeedCaptcha.htl`
 - METHOD: GET
 - PARAMS: 
@@ -138,6 +138,10 @@ Response:
 
 ### 获取验证码
 
+#### 字符验证码
+
+**2024-09-13时发现已不再使用**
+
 - URL:`https://ids.uwh.edu.cn/authserver/getCaptcha.htl`
 - METHOD: GET
 - PARAMS: 
@@ -151,6 +155,57 @@ Response:
 
 例如：
 ![](https://ids.uwh.edu.cn/authserver/getCaptcha.htl)
+
+#### 滑块验证码
+
+##### 请求验证码
+
+- URL:`https://ids.uwh.edu.cn/authserver/common/openSliderCaptcha.htl`
+- METHOD: GET
+- PARAMS: 
+  - _: 时间戳，例如`1725687148153`
+
+Response:
+```json
+{
+  "smallImage":"小滑块图片BASE64值",
+  "bigImage":"背景缺口图片BASE64值",
+  "tagWidth": 85,
+  "yHeight": 0
+}
+```
+
+##### 验证验证码
+
+- URL:`https://ids.uwh.edu.cn/authserver/common/verifySliderCaptcha.htl`
+- METHOD: POST
+- DATA: (FORM)
+  - `canvasLength`:`280`（验证码总长度，基本不变）
+  - `moveLength`:	滑块移动横坐标值
+
+Response:
+成功示例：
+```json
+{
+	"errorCode": 1,
+	"errorMsg": "success"
+}
+```
+失败示例：
+```json
+{
+  "errorCode":0,
+  "errorMsg":"error"
+}
+```
+
+> **重要说明**
+> 
+> 通过验证码验证后，不会响应有价值的信息，也没有新的Cookies，经过验证后得知其验证流程为：
+> 
+> 是在之前的请求中，响应了Cookies，需要携带这些Cookies请求并验证，通过后，这些Cookies就充当了Token的角色，从而使后面的登录等操作得以正常进行。
+> 
+> 因此只需要在原有的流程中将请求和验证滑块验证码放置于登录前即可，不影响登陆后的一系列操作。
 
 ### 获取签到任务
 
@@ -298,6 +353,12 @@ RESPONSE（成功签到）:
 
 ## 更新日志
 
+- 2024-09-15_Ver1.4.1:
+  - 现在可向网页推送通知信息
+- 2024-09-14_Ver1.4.0:
+  - 修复接近任务开始时间异常等待至下一天的问题
+  - 跟进官方，加入新的SliderPass模块专门用于解决滑块验证码，现已可正常使用
+  - 取消对旧验证码（字符验证码）的请求与验证，改为验证滑块
 - 2024-09-09_Ver1.3.2:
   - 修复超时导致的签到失败队列加载失败的问题
   - 修复超过签到时间后自动等待时间异常问题

@@ -29,6 +29,9 @@ class AutoSign:
         try:
             wjc.login()
             info = wjc.getSignTask()
+            if info['code'] == 'fail':
+                logger.error(f"{account} 获取签到信息失败")
+                raise Exception
             info = wjc.sign(coordinate,info['info']['aaData'][0]['DM'],info['info']['aaData'][0]['SJDM'])
             if info['code'] == 'ok':
                 logger.info(f"{account} 签到成功")
@@ -40,18 +43,18 @@ class AutoSign:
                 await db.user_sign(account)
             else:
                 logger.error(f"{account} 签到失败")
-                if not fail_try:
-                    self.q_fail_user.put({
-                        'account':account,
-                        'pswd':pswd,
-                        'coordinate':coordinate,
-                        'email':email,
-                        'info':str(info),
-                        'times_try':1
-                    })
-                await db.user_try_add(account)
+                raise Exception
+                # if not fail_try:
+                #     self.q_fail_user.put({
+                #         'account':account,
+                #         'pswd':pswd,
+                #         'coordinate':coordinate,
+                #         'email':email,
+                #         'info':str(info),
+                #         'times_try':1
+                #     })
+                # await db.user_try_add(account)
         except Exception:
-            logger.error(f"{account} 签到失败")
             if not fail_try:
                 self.q_fail_user.put({
                     'account':account,
@@ -147,11 +150,6 @@ class AutoSign:
                 start_time = time(hour=int(TIME_SET['start'].split(':')[0]), minute=int(TIME_SET['start'].split(':')[1]))
                 end_time = time(hour=int(TIME_SET['end'].split(':')[0]), minute=int(TIME_SET['end'].split(':')[1]))
 
-                TIME_CHCECK_WAIT = int(datetime.combine(date.today(),start_time).timestamp()-now.timestamp())
-                if TIME_CHCECK_WAIT <1:
-                    # 冗余10秒
-                    TIME_CHCECK_WAIT = int((datetime.combine(date.today() + timedelta(days=1), time(20, 0))-datetime.now()).total_seconds())-10
-
                 if start_time <= current_time <= end_time:
                     logger.info('签到开始')
                     await self.sign_task()
@@ -172,6 +170,12 @@ class AutoSign:
                     mail_control.admin_mail('签到状态',mail_content)
                     break
                 else:
+                    TIME_CHCECK_WAIT = int(datetime.combine(date.today(),start_time).timestamp()-now.timestamp())
+                    if TIME_CHCECK_WAIT <0:
+                        # 冗余10秒
+                        TIME_CHCECK_WAIT = int((datetime.combine(date.today() + timedelta(days=1), time(20, 0))-datetime.now()).total_seconds())-10
+                    if TIME_CHCECK_WAIT == 0:
+                        TIME_CHCECK_WAIT +=1
                     logger.info(f'未到签到开始时间，等待{TIME_CHCECK_WAIT}秒后重新开始签到')
                     await asyncio.sleep(TIME_CHCECK_WAIT)
                     continue

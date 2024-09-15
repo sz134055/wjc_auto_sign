@@ -2,9 +2,9 @@ from fastapi import FastAPI,Form
 from fastapi.responses import HTMLResponse,JSONResponse,Response
 from datetime import datetime,time,timedelta
 from fastapi.staticfiles import StaticFiles
-from setting import DB_PATH,TIME_SET
+from setting import DB_PATH,TIME_SET,REMOTE_API_TOKEN
 from mail_control import user_mail,reg_mail_gen,email_validate_gen
-from db_control import getDBControl
+from db_control import getDBControl,getWebDBControl,getTime
 import aiofiles
 from pathlib import Path
 import os
@@ -125,7 +125,47 @@ async def submit(account:str=Form(),coordinate:str=Form()):
     else:
         logger.error(f'用户 {account} 注册失败，未通过验证')
         return JSONResponse(content={'code':'fail','msg':'当前账号未通过验证'})
+
+@app.get('/noticeGet')
+async def noticeGet():
+    """
+    用于获网站上的提醒信息
+    """
+    DB = await getWebDBControl()
+    return await DB.get_notice()
+
+@app.post('/noticePush')
+async def noticePush(api_token:str=Form(),title:str=Form(),content:str=Form(),time:int=Form(),dayDelay:int=Form()):
+    """
+    用于向网站推送提醒信息
+
+    time为通知的过期时间，为13位时间戳。time设置为0时以dayDelay为准延迟推送，单位为天数，会自动计算相应的time值
+
+    :param api_token: API TOKEN
+    :param title: 标题
+    :param content: 内容
+    :param time: 时间戳，单位为毫秒
+    :param dayDelay: 延迟天数，单位为天
+    :return: JSONResponse
+    """
+    if api_token != REMOTE_API_TOKEN:
+        logger.error('用户尝试非法操作推送信息')
+        return JSONResponse(content={'code':'fail','msg':'无权限操作'})
     
+    if not title or not content:
+        return JSONResponse(content={'code':'fail','msg':'标题或内容不能为空'})
+
+    if not time and not dayDelay:
+        return JSONResponse(content={'code':'fail','msg':'时间或延迟天数不能为空'})
+    
+    if not time and dayDelay:
+        time = int(getTime()) + (dayDelay * 86400)*1000
+    
+    DB = await getWebDBControl()
+    await DB.add_notice(title,content,time)
+    logger.info(f'推送提醒：{title}[{time}] \n {content}')
+    return JSONResponse(content={'code':'ok','msg':'推送成功'})
+
 
 if __name__ == '__main__':
     uvicorn.run(app='web_app:app',host='0.0.0.0',port=8000,reload=True)
