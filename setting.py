@@ -1,40 +1,60 @@
 import os.path as os_path
+from configparser import ConfigParser
 
 CURRENT_PATH = os_path.dirname(os_path.abspath(__file__))
+SETTING_FILE_PATH = "setting.ini"
 
-DB_PATH = 'signInfo.db'
-DB_TABLE = 'users'
+__cf = ConfigParser()
+__cf.read(os_path.join(CURRENT_PATH,SETTING_FILE_PATH),encoding="utf-8")
 
-DB_PATH = os_path.join(CURRENT_PATH, DB_PATH)
-
-REMOTE_API = {
-    'update':''
+# DB
+DB_CHOOSE = __cf.get("db","choose")
+TABLE_SET = {
+    'user':__cf.get("db","user_table"),
+    'web': __cf.get("db","web_table")
+}
+# SQLITE
+SQLITE_SET = {
+    'user_db_path':__cf.get("sqlite","user_db_path"),
+    'web_db_path':__cf.get("sqlite","web_db_path")
+}
+# MYSQL
+MYSQL_SET = {
+    'host' : __cf.get("mysql","host"),
+    'port': __cf.get("mysql","port"),
+    'account' : __cf.get("mysql","account"),
+    'pswd' : __cf.get("mysql","password"),
+    'db_name' : __cf.get("mysql","db_name")
 }
 
-# 向网站推送通知信息需要使用
-REMOTE_API_TOKEN = ''
+
+REMOTE_API_TOKEN = __cf.get("token","api_token")
 
 TIME_SET = {
-    'start': '20:30',  
-    'end': '22:00' #'23:00'      # 提前结束预留时间
+    'start': __cf.get("timeSet","start"),  
+    'end': __cf.get("timeSet","end")
 }
 
 MAIL_SET = {
-    'admin':'',
-    'account':'',
-    'host': '',
-    'token':''
+    'admin':__cf.get("mail","admin_mail"),
+    'account':__cf.get("mail","account"),
+    'host': __cf.get("mail","host"),
+    'token':__cf.get("mail","token")
 }
 
-ADDRESS_NAME = "在芜湖学院附近"
+ADDRESS_NAME = __cf.get("signInfo","address_name")
 
-TIME_CHCECK_WAIT = 180  # 3分钟
-TIME_SLEEP_WAIT = 60*60*22 # 22小时
+TIME_CHCECK_WAIT = int(__cf.get("timeSet","check_wait"))
+TIME_SLEEP_WAIT = int(__cf.get("timeSet","sleep_wait"))
 
-SIGN_MAX_TRY_TIMES = 3 # 签到失败最多尝试次数
-FAIL_MAX_TRY_DAYS = 3   # 最大连续失败签到天数，达到该天数后将会禁用用户自动签到
+SIGN_MAX_TRY_TIMES = int(__cf.get("signInfo","times_max_try"))
+FAIL_MAX_TRY_DAYS = int(__cf.get("signInfo","days_max_try"))
 
-DB_INIT_SQL = '''
+MYSQL_INIT_SQL = f"""
+    CREATE DATABASE IF NOT EXISTS {MYSQL_SET['db_name']};
+"""
+
+USER_DB_INIT_SQL = '''
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER NOT NULL PRIMARY KEY,
         pswd TEXT NOT NULL,
@@ -46,5 +66,13 @@ DB_INIT_SQL = '''
         total INTEGER DEFAULT 0,
         active INTEGER DEFAULT 1,
         failDays INTEGER DEFAULT 0
+    );
+'''
+NOTICE_DB_INIT_SQL = '''
+    CREATE TABLE IF NOT EXISTS notice(
+        id INT NOT NULL PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        time TEXT NOT NULL
     );
 '''
