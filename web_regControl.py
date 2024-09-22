@@ -1,7 +1,6 @@
 import aiosqlite
 import random
 from time import time as tTime
-from setting import DB_PATH
 async def emailVCodeGen() -> str:
     return ''.join(str(random.randint(0, 9)) for _ in range(6))
 

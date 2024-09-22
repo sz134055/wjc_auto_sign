@@ -126,12 +126,12 @@ class UserDBControl():
         elif DB_CHOOSE == 'mysql':
             self.db = MysqlControl()
             await self.db.connect()
-            await self.db.update(USER_DB_INIT_SQL)
+            await self.db.update(USER_DB_INIT_SQL.replace("AUTOINCREMENT","AUTO_INCREMENT"))
         else:
             raise ValueError("数据库选择参数错误，填写 sqlite 或 mysql")
         
 
-    async def update_user(self, account:int, pswd:str, email:str, coordinate:str):
+    async def update_user(self, account:str, pswd:str, email:str, coordinate:str):
         """
         附带账号检查的账号更新
 
@@ -145,40 +145,40 @@ class UserDBControl():
         :return: None
         """
         db = self.db
-        account_res = await db.query_one(f"SELECT * FROM {TABLE_SET['user']} WHERE id = %s", (account,))
+        account_res = await db.query_one(f"SELECT * FROM {TABLE_SET['user']} WHERE account = %s", (account,))
         email_res = await db.query_one(f"SELECT * FROM {TABLE_SET['user']} WHERE email = %s", (email,))
         if account_res:
-            await db.update(f"UPDATE {TABLE_SET['user']} SET pswd=%s,email=%s,coordinate=%s,updateTime=%s,failDays=0,active=1 WHERE id = %s", (pswd, email, coordinate,getTime(),account))
+            await db.update(f"UPDATE {TABLE_SET['user']} SET pswd=%s,email=%s,coordinate=%s,updateTime=%s,failDays=0,active=1 WHERE account = %s", (pswd, email, coordinate,getTime(),account))
             logger.info(f"更新用户{account}信息成功[账号优先 {account}]")
             return {'code':'ok','msg':f"更新用户{account}信息成功[账号优先 {account}]"}
         elif email_res:
-            await db.update(f"UPDATE {TABLE_SET['user']} SET id=%s,pswd=%s,coordinate=%s,updateTime=%s,failDays=0,active=1 WHERE email=%s", (account,pswd,coordinate,getTime(),email))
+            await db.update(f"UPDATE {TABLE_SET['user']} SET account=%s,pswd=%s,coordinate=%s,updateTime=%s,failDays=0,active=1 WHERE email=%s", (account,pswd,coordinate,getTime(),email))
             logger.info(f"更新用户{account}信息成功[邮箱优先 {email}]")
             return {'code':'ok','msg':f"更新用户{account}信息成功[邮箱优先 {email}]"}
         else:
             logger.info(f"更新用户{account}信息失败[账号或邮箱不存在 {email}]")
             return {'code':'fail','msg':f"更新用户{account}信息失败[账号或邮箱不存在 {email}]"}
 
-    async def add_user(self, account:int, pswd:str, email:str, coordinate:str):
+    async def add_user(self, account:str, pswd:str, email:str, coordinate:str):
         db = self.db
-        account_res = await db.query_one(f"SELECT * FROM {TABLE_SET['user']} WHERE id = %s", (account,))
+        account_res = await db.query_one(f"SELECT * FROM {TABLE_SET['user']} WHERE account = %s", (account,))
         email_res = await db.query_one(f"SELECT * FROM {TABLE_SET['user']} WHERE email = %s", (email,))
         if account_res or email_res:
             await self.update_user(account, pswd, email, coordinate)
             logger.info(f"添加或更新用户{account} 添加成功")
         else:
-            await db.update(f"INSERT INTO {TABLE_SET['user']} (id,pswd,email,coordinate,updateTime,signTime,success,total,active) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)", (account, pswd, email, coordinate, getTime(), 0, 0, 0,1))
+            await db.update(f"INSERT INTO {TABLE_SET['user']} (account,pswd,email,coordinate,updateTime,signTime,success,total,active) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)", (account, pswd, email, coordinate, getTime(), '0', 0, 0,1))
             logger.info(f"添加或更新用户{account} 添加成功")
             return {'code':'ok','msg':'新用户{account} 添加成功'}
     
 
-    async def check_user(self, account:int):
+    async def check_user(self, account:str):
         """
         检查用户是否签到
 
         """
         db = self.db
-        user_info = await db.query_one(f"SELECT * FROM {TABLE_SET['user']} WHERE id = %s", (account,))
+        user_info = await db.query_one(f"SELECT * FROM {TABLE_SET['user']} WHERE account = %s", (account,))
         if user_info:
             lastSignTime = datetime.fromtimestamp(int(user_info['signTime']) / 1000.0).date()
             now_time = datetime.now().date()
@@ -190,30 +190,30 @@ class UserDBControl():
             return {'code':'fail','msg':'用户不存在','info':None}
     
 
-    async def is_user_exist(self,account:int) -> bool:
+    async def is_user_exist(self,account:str) -> bool:
         """
         检查用户是否存在
 
         """
         db = self.db
-        user_info = await db.query_one(f"SELECT * FROM {TABLE_SET['user']} WHERE id = %s", (account,))
+        user_info = await db.query_one(f"SELECT * FROM {TABLE_SET['user']} WHERE account = %s", (account,))
         if user_info:
             return True
         else:
             return False
 
-    async def user_try_add(self,account:int):
+    async def user_try_add(self,account:str):
         db = self.db
-        sign_info = await db.query_one(f"SELECT total FROM {TABLE_SET['user']} WHERE id = %s", (account,))
-        await db.update(f"UPDATE {TABLE_SET['user']} SET total=%s WHERE id = %s", (sign_info['total']+1,account))
+        sign_info = await db.query_one(f"SELECT total FROM {TABLE_SET['user']} WHERE account = %s", (account,))
+        await db.update(f"UPDATE {TABLE_SET['user']} SET total=%s WHERE account = %s", (sign_info['total']+1,account))
         logger.info(f"更新用户{account}签到次数成功")
         return {'code':'ok','msg':f"更新用户{account}签到次数成功"}
 
   
-    async def user_sign(self, account:int):
+    async def user_sign(self, account:str):
         db = self.db
-        sign_info = await db.query_one(f"SELECT success,total FROM {TABLE_SET['user']} WHERE id = %s", (account,))
-        await db.update(f"UPDATE {TABLE_SET['user']} SET signTime=%s,success=%s,total=%s WHERE id = %s", (getTime(),sign_info[0]+1,sign_info[1]+1,account))
+        sign_info = await db.query_one(f"SELECT success,total FROM {TABLE_SET['user']} WHERE account = %s", (account,))
+        await db.update(f"UPDATE {TABLE_SET['user']} SET signTime=%s,success=%s,total=%s WHERE account = %s", (getTime(),sign_info[0]+1,sign_info[1]+1,account))
         logger.info(f"更新用户{account}签到状态成功")
         return {'code':'ok','msg':f"更新用户{account}签到状态成功"}
     
@@ -224,7 +224,7 @@ class UserDBControl():
         return users_info
     
 
-    async def deactive_user(self,account:int,ban_by_user:bool=False) -> bool:
+    async def deactive_user(self,account:str,ban_by_user:bool=False) -> bool:
         '''
         申请对签到失败或主动选择停用的用户，将其停用
 
@@ -233,28 +233,28 @@ class UserDBControl():
         :return: 如果符合禁用条件，将会禁用并返回True，否则返回False
         '''
         db = self.db
-        user_info = await db.query_one(f"SELECT * FROM {TABLE_SET['user']} WHERE id = %s", (account,))
+        user_info = await db.query_one(f"SELECT * FROM {TABLE_SET['user']} WHERE account = %s", (account,))
         if user_info['active']==0:
             # 已经禁用用户
             return True
         elif user_info['failDays']>=FAIL_MAX_TRY_DAYS or ban_by_user:
-            await db.update(f"UPDATE {TABLE_SET['user']} SET active=%s WHERE id = %s", (0,account))
+            await db.update(f"UPDATE {TABLE_SET['user']} SET active=%s WHERE account = %s", (0,account))
             logger.info(f"用户{account}被禁用")
             return True
         else:
             return False
 
        
-    async def user_fail_day_add(self,account:int):
+    async def user_fail_day_add(self,account:str):
         db = self.db
-        fail_day = await db.query_one(f"SELECT failDays FROM {TABLE_SET['user']} WHERE id = %s", (account,))
-        await db.update(f"UPDATE {TABLE_SET['user']} SET failDays=%s WHERE id = %s", (fail_day['failDays']+1,account))
+        fail_day = await db.query_one(f"SELECT failDays FROM {TABLE_SET['user']} WHERE account = %s", (account,))
+        await db.update(f"UPDATE {TABLE_SET['user']} SET failDays=%s WHERE account = %s", (fail_day['failDays']+1,account))
         logger.info(f"用户{account}连续签到失败{fail_day['failDays']+1}天")
 
      
-    async def reset_fail_day(self,account:int):
+    async def reset_fail_day(self,account:str):
         db = self.db
-        await db.update(f"UPDATE {TABLE_SET['user']} SET failDays=0 WHERE id = %s", (account,))
+        await db.update(f"UPDATE {TABLE_SET['user']} SET failDays=0 WHERE account = %s", (account,))
         logger.info(f"重置用户{account}连续签到失败天数")
 
     async def quit(self):
@@ -290,11 +290,13 @@ class WebDBControl():
 
     async def get_notice(self) -> dict:
         res = await self.db.query_one(f"SELECT * FROM {TABLE_SET['web']} ORDER BY id DESC LIMIT 1")
-        return {
-            'title': res['title'],
-            'content': res['content'],
-            'time': int(res['time'])
-        }
+        if res:
+            return {
+                'title': res['title'],
+                'content': res['content'],
+                'time': int(res['time'])
+            }
+        return {}
     
     async def quit(self):
         if self.db:
