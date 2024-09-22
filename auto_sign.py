@@ -36,7 +36,13 @@ class AutoSign:
             if info['code'] == 'fail':
                 logger.error(f"{account} 获取签到信息失败")
                 raise Exception
-            info = wjc.sign(coordinate,info['info']['aaData'][0]['DM'],info['info']['aaData'][0]['SJDM'])
+            # 对已签到的用户将不会再进行签到
+            if not info['info']['aadata'][0]['QDSJ']:
+                info = wjc.sign(coordinate,info['info']['aaData'][0]['DM'],info['info']['aaData'][0]['SJDM'])
+            else:
+                info = {'code':'ok','msg':'已存在签到记录，将不会签到'}
+                logger.info(f"{account} 已存在签到记录，将不会进行签到")
+
             if info['code'] == 'ok':
                 logger.info(f"{account} 签到成功")
                 # 为节省邮箱发送次数，不再对成功签到的用户发送通知邮件
@@ -70,7 +76,6 @@ class AutoSign:
                 # active 0 跳过该用户
                 continue
             
-            # 可添加在线检查用户是否签到，以防止覆盖掉用户自己的签到
             if (await db.check_user(u['account']))['code'] == 'ok':
                 u_info = {
                     'account':u['account'],
