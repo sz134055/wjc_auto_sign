@@ -54,9 +54,10 @@ MYSQL_INIT_SQL = f"""
     CREATE DATABASE IF NOT EXISTS {MYSQL_SET['db_name']};
 """
 
-USER_DB_INIT_SQL = '''
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER NOT NULL PRIMARY KEY,
+USER_DB_INIT_SQL = f'''
+    CREATE TABLE IF NOT EXISTS {TABLE_SET['user']} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        account TEXT NOT NULL,
         pswd TEXT NOT NULL,
         email TEXT NOT NULL,
         coordinate TEXT NOT NULL,
@@ -68,9 +69,9 @@ USER_DB_INIT_SQL = '''
         failDays INTEGER DEFAULT 0
     );
 '''
-NOTICE_DB_INIT_SQL = '''
-    CREATE TABLE IF NOT EXISTS notice(
-        id INT NOT NULL PRIMARY KEY AUTOINCREMENT,
+NOTICE_DB_INIT_SQL = f'''
+    CREATE TABLE IF NOT EXISTS {TABLE_SET['web']}(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
         content TEXT NOT NULL,
         time TEXT NOT NULL
