@@ -213,7 +213,7 @@ class UserDBControl():
     async def user_sign(self, account:str):
         db = self.db
         sign_info = await db.query_one(f"SELECT success,total FROM {TABLE_SET['user']} WHERE account = %s", (account,))
-        await db.update(f"UPDATE {TABLE_SET['user']} SET signTime=%s,success=%s,total=%s WHERE account = %s", (getTime(),sign_info[0]+1,sign_info[1]+1,account))
+        await db.update(f"UPDATE {TABLE_SET['user']} SET signTime=%s,success=%s,total=%s WHERE account = %s", (getTime(),sign_info['success']+1,sign_info['total']+1,account))
         logger.info(f"更新用户{account}签到状态成功")
         return {'code':'ok','msg':f"更新用户{account}签到状态成功"}
     
