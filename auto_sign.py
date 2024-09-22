@@ -47,7 +47,7 @@ class AutoSign:
                 await db.user_sign(account)
             else:
                 raise Exception
-        except Exception:
+        except Exception as e:
             logger.error(f"{account} 签到失败")
             if not fail_try:
                 self.q_fail_user.put({
@@ -133,11 +133,11 @@ class AutoSign:
                 logger.info(f"向用户{user['account']}发送账号禁用成功")
         
     async def time_check(self):
-        logger.info('时间检查开始')
-        if not self.user_db:
-            await self.use_user_db()
         while True:
+            if not self.user_db:
+                await self.use_user_db()
             while True:
+                logger.info('时间检查开始')
                 # 获取当前时间
                 now = datetime.now()
                 current_time = now.time()
@@ -173,11 +173,16 @@ class AutoSign:
                     if TIME_CHCECK_WAIT == 0:
                         TIME_CHCECK_WAIT +=1
                     logger.info(f'未到签到开始时间，等待{TIME_CHCECK_WAIT}秒后重新开始签到')
+                    if self.user_db:
+                        await self.user_db.quit()   # 退出数据库
+                        self.user_db = None
                     await asyncio.sleep(TIME_CHCECK_WAIT)
                     continue
                 
             logger.info(f'签到结束，等待{TIME_SLEEP_WAIT}')
-            await self.user_db.quit()
+            if self.user_db:
+                await self.user_db.quit()   # 退出数据库
+                self.user_db = None
             await asyncio.sleep(TIME_SLEEP_WAIT)
 
     @logger.catch
