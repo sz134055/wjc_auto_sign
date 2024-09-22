@@ -2,9 +2,9 @@ from fastapi import FastAPI,Form
 from fastapi.responses import HTMLResponse,JSONResponse,Response
 from datetime import datetime,time,timedelta
 from fastapi.staticfiles import StaticFiles
-from setting import DB_PATH,TIME_SET,REMOTE_API_TOKEN
+from setting import TIME_SET,REMOTE_API_TOKEN,DB_CHOOSE
 from mail_control import user_mail,reg_mail_gen,email_validate_gen
-from db_control import getDBControl,getWebDBControl,getTime
+from db_control import getWebDBControl,getTime,getUserDBControl
 import aiofiles
 from pathlib import Path
 import os
@@ -24,6 +24,10 @@ app.mount("/static", StaticFiles(directory="web_app/build/static"), name="static
 eDB = RegControl()
 
 async def is_db_locked() -> bool:
+    if DB_CHOOSE == 'mysql':
+        # 如果选择Mysql作为数据库则不锁定
+        return False
+
     # 获取当前时间
     now = datetime.now()
     # 增加1s的延迟
@@ -76,20 +80,23 @@ async def check_account(account:str=Form(),pswd:str=Form(),email:str=Form()):
 
 @app.post('/stopAccount')
 async def cancel_reg(account:str=Form(),pswd:str=Form()):
-    DB = await getDBControl(DB_PATH)
     if(await is_db_locked()):
         logger.info(f'用户 {account} 尝试在非开放时间点取消签到注册')
+       
         return JSONResponse({'code':'fail','msg':f'当前时间段 ({TIME_SET["start"]} - {TIME_SET["end"]}) 无法取消，请在非此时间段再重试'})
-    
+    DB = await getUserDBControl()
     if(await DB.is_user_exist(account) and await wjcAccountSignTest(account,pswd)):
         if await DB.deactive_user(account=account,ban_by_user=True):
             logger.info(f'用户 {account} 取消注册签到')
+            await DB.quit()
             return JSONResponse(content={'code':'ok','msg':'取消注册成功'})
         else:
             logger.error(f'用户 {account} 取消注册签到失败')
+            await DB.quit()
             return JSONResponse(content={'code':'fail','msg':'取消注册失败'})
     else:
         logger.error(f'用户 {account} 取消注册签到失败，未注册自动签到或账号密码错误')
+        await DB.quit()
         return JSONResponse(content={'code':'fail','msg':'未注册自动签到或账号密码错误'})
 @app.post('/emailCheck')
 async def emailCheck(account:str=Form(),emailVCode:str=Form()):
@@ -117,8 +124,9 @@ async def submit(account:str=Form(),coordinate:str=Form()):
 
     if await eDB.is_user_pass(account):
         user_info = await eDB.finish_reg(account)
-        DB = await getDBControl(DB_PATH)
+        DB = await getUserDBControl()
         await DB.add_user(account,user_info['pswd'],user_info['email'],coordinate)
+        await DB.quit()
         user_mail('自动签到注册成功',reg_mail_gen({'account':account,'email':user_info['email'],'coordinate':coordinate}),user_info['email'])
         logger.info(f'用户 {account} 注册成功')
         return JSONResponse(content={'code':'ok','msg':'注册成功'})
@@ -132,7 +140,9 @@ async def noticeGet():
     用于获网站上的提醒信息
     """
     DB = await getWebDBControl()
-    return await DB.get_notice()
+    res = await DB.get_notice()
+    await DB.quit()
+    return JSONResponse(content=res)
 
 @app.post('/noticePush')
 async def noticePush(api_token:str=Form(),title:str=Form(),content:str=Form(),time:int=Form(),dayDelay:int=Form()):
@@ -163,10 +173,11 @@ async def noticePush(api_token:str=Form(),title:str=Form(),content:str=Form(),ti
     
     DB = await getWebDBControl()
     await DB.add_notice(title,content,time)
+    await DB.quit()
     logger.info(f'推送提醒：{title}[{time}] \n {content}')
     return JSONResponse(content={'code':'ok','msg':'推送成功'})
 
 
 if __name__ == '__main__':
-    uvicorn.run(app='web_app:app',host='0.0.0.0',port=8000,reload=True)
+    uvicorn.run(app='web_app:app',host='0.0.0.0',port=80,reload=True)
     #uvicorn.run(app='web_app:app',host='0.0.0.0',port=443,ssl_keyfile='/home/admin/certificate/certkey.key',ssl_certfile='/home/admin/certificate/certfile.cer')

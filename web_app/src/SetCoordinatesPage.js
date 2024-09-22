@@ -16,6 +16,7 @@ export default function SetCoordinatesPage(props){
     // const [chooseCLabel,setChooseCLabel] = useState(selectCoordinates[0].label);
     const [chooseCValue,setChooseCValue] = useState(selectCoordinates[0].value);
     const [form] = Form.useForm();
+    const [nowLoading,setNowLoading] = useState(false);
     
     function changeCValue(){
       const coordinates = form.getFieldValue("coordinates");
@@ -27,6 +28,7 @@ export default function SetCoordinatesPage(props){
       // })
       const setStep = props.setStep;
       const account = props.formData.account;
+      setNowLoading(true);
       // const coordinates = props.formData.coordinates;
       axios.post('/submit',{
         account:account,
@@ -42,8 +44,10 @@ export default function SetCoordinatesPage(props){
         }else{
           message.error(res.data.msg);
         }
+        setNowLoading(false);
       })
       .catch(error=>{
+        setNowLoading(false);
         message.error("与服务器连接失败");
         console.log(error);
       })
@@ -70,7 +74,7 @@ export default function SetCoordinatesPage(props){
         <Button
             type="primary"
             onClick={setCoordinates}
-            
+            loading={nowLoading}
           >
             确认
           </Button>
