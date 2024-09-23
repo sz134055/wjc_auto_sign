@@ -37,7 +37,7 @@ class AutoSign:
                 logger.error(f"{account} 获取签到信息失败")
                 raise Exception
             # 对已签到的用户将不会再进行签到
-            if not info['info']['aadata'][0]['QDSJ']:
+            if not info['info']['aaData'][0]['QDSJ']:
                 info = wjc.sign(coordinate,info['info']['aaData'][0]['DM'],info['info']['aaData'][0]['SJDM'])
             else:
                 info = {'code':'ok','msg':'已存在签到记录，将不会签到'}
