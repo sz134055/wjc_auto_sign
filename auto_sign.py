@@ -37,7 +37,7 @@ class AutoSign:
                 logger.error(f"{account} 获取签到信息失败")
                 raise Exception
             # 对已签到的用户将不会再进行签到
-            if not info['info']['aadata'][0]['QDSJ']:
+            if not info['info']['aaData'][0]['QDSJ']:
                 info = wjc.sign(coordinate,info['info']['aaData'][0]['DM'],info['info']['aaData'][0]['SJDM'])
             else:
                 info = {'code':'ok','msg':'已存在签到记录，将不会签到'}
@@ -139,8 +139,6 @@ class AutoSign:
         
     async def time_check(self):
         while True:
-            if not self.user_db:
-                await self.use_user_db()
             while True:
                 logger.info('时间检查开始')
                 # 获取当前时间
@@ -152,6 +150,8 @@ class AutoSign:
                 end_time = time(hour=int(TIME_SET['end'].split(':')[0]), minute=int(TIME_SET['end'].split(':')[1]))
 
                 if start_time <= current_time <= end_time:
+                    # 仅在开始签到时连接数据库，并在完成签到后退出，防止因长时间等待导致数据库断连引发后续问题
+                    self.user_db = await getUserDBControl()
                     logger.info('签到开始')
                     await self.sign_task()
                     await self.__fail_user_sign()
@@ -169,6 +169,9 @@ class AutoSign:
                         })
                     mail_content = mail_control.admin_mail_gen(info)
                     mail_control.admin_mail('签到状态',mail_content)
+                    if self.user_db:
+                        await self.user_db.quit()   # 退出数据库
+                        self.user_db = None
                     break
                 else:
                     TIME_CHCECK_WAIT = int(datetime.combine(date.today(),start_time).timestamp()-now.timestamp())
@@ -178,16 +181,9 @@ class AutoSign:
                     if TIME_CHCECK_WAIT == 0:
                         TIME_CHCECK_WAIT +=1
                     logger.info(f'未到签到开始时间，等待{TIME_CHCECK_WAIT}秒后重新开始签到')
-                    if self.user_db:
-                        await self.user_db.quit()   # 退出数据库
-                        self.user_db = None
                     await asyncio.sleep(TIME_CHCECK_WAIT)
                     continue
-                
             logger.info(f'签到结束，等待{TIME_SLEEP_WAIT}')
-            if self.user_db:
-                await self.user_db.quit()   # 退出数据库
-                self.user_db = None
             await asyncio.sleep(TIME_SLEEP_WAIT)
 
     @logger.catch
