@@ -46,10 +46,9 @@ class AutoSign:
             if info['code'] == 'ok':
                 logger.info(f"{account} 签到成功")
                 # 为节省邮箱发送次数，不再对成功签到的用户发送通知邮件
-                #mail_content = mail_control.user_mail_gen(f"签到成功",f"{account} 签到成功",str(info['info']))
-                # mail_control.user_mail('签到成功',mail_content,email)
-                #await mail_control.new_user_mail('签到成功',mail_content,email)
-
+                #mail_content = await mail_control.user_mail_gen(f"签到成功",f"{account} 签到成功",str(info['info']))
+                # await mail_control.user_mail('签到成功',mail_content,email)
+                
                 await db.user_sign(account)
             else:
                 raise Exception
@@ -119,10 +118,8 @@ class AutoSign:
 
         while not q_bad_list.empty():
             user = q_bad_list.get()
-            mail_content = mail_control.user_mail_gen('签到失败', '请检查账号密码等信息是否正确', await self.__error_msg_gen(user['info']))
-            mail_control.user_mail('签到失败', mail_content, user['email'])
-            #await mail_control.new_user_mail('签到失败',mail_content,user['email'])
-
+            mail_content = await mail_control.user_mail_gen('签到失败', '请检查账号密码等信息是否正确', await self.__error_msg_gen(user['info']))
+            await mail_control.user_mail('签到失败', mail_content, user['email'])
             q_bad_list.task_done()
             logger.info(f"向用户{user['account']}发送签到失败信息成功")
 
@@ -131,10 +128,9 @@ class AutoSign:
 
             # 尝试封禁失败用户
             if await db.deactive_user(user['account']):
-                mail_content = mail_control.ban_mail_gen(str(user['account']))
-                mail_control.user_mail('自动签到停止', mail_content, user['email'])
-                # await mail_control.new_user_mail('自动签到停止',mail_content,user['email'])
-                
+                mail_content = await mail_control.ban_mail_gen(str(user['account']))
+                await mail_control.user_mail('自动签到停止', mail_content, user['email'])
+            
                 logger.info(f"向用户{user['account']}发送账号禁用成功")
         
     async def time_check(self):
@@ -167,8 +163,8 @@ class AutoSign:
                             'total':user['total'],
                             'active':user['active'],
                         })
-                    mail_content = mail_control.admin_mail_gen(info)
-                    mail_control.admin_mail('签到状态', mail_content)
+                    mail_content = await mail_control.admin_mail_gen(info)
+                    await mail_control.admin_mail('签到状态', mail_content)
                     if self.user_db:
                         await self.user_db.quit()   # 退出数据库
                         self.user_db = None

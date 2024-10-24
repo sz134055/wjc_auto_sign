@@ -68,7 +68,7 @@ async def check_account(account:str=Form(),pswd:str=Form(),email:str=Form()):
     if(await eDB.check_user(account,pswd) or await wjcAccountSignTest(account,pswd)):
         emailVCode = await eDB.updata_user(account,pswd,email)
         logger.info(f'用户 {account} 尝试注册，邮箱验证码将发送至 {email}')
-        res = user_mail('自动签到注册邮箱验证码',f'您的验证码为：{emailVCode}',email)
+        res = await user_mail('自动签到注册邮箱验证码',f'您的验证码为：{emailVCode}',email)
         if(res):
             logger.info(f'验证码发送至{email}')
             return JSONResponse(content={'code':'ok','msg':'验证码发送成功，请检查你的邮箱'})
@@ -127,7 +127,7 @@ async def submit(account:str=Form(),coordinate:str=Form()):
         DB = await getUserDBControl()
         await DB.add_user(account,user_info['pswd'],user_info['email'],coordinate)
         await DB.quit()
-        user_mail('自动签到注册成功',reg_mail_gen({'account':account,'email':user_info['email'],'coordinate':coordinate}),user_info['email'])
+        await user_mail('自动签到注册成功',await reg_mail_gen({'account':account,'email':user_info['email'],'coordinate':coordinate}),user_info['email'])
         logger.info(f'用户 {account} 注册成功')
         return JSONResponse(content={'code':'ok','msg':'注册成功'})
     else:
@@ -179,5 +179,5 @@ async def noticePush(api_token:str=Form(),title:str=Form(),content:str=Form(),ti
 
 
 if __name__ == '__main__':
-    uvicorn.run(app='web_app:app',host='0.0.0.0',port=80,reload=True)
+    uvicorn.run(app='web_app:app',host='0.0.0.0',port=8000,reload=True)
     #uvicorn.run(app='web_app:app',host='0.0.0.0',port=443,ssl_keyfile='/home/admin/certificate/certkey.key',ssl_certfile='/home/admin/certificate/certfile.cer')
