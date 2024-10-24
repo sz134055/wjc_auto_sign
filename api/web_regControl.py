@@ -1,13 +1,15 @@
 import aiosqlite
 import random
 from time import time as tTime
+from api.setting import CURRENT_PATH
+from os.path import join as path_join
 async def emailVCodeGen() -> str:
     return ''.join(str(random.randint(0, 9)) for _ in range(6))
 
 
 class RegControl:
     def __init__(self):
-       self.DB_PATH = '../regControl.db'
+       self.DB_PATH = path_join(CURRENT_PATH,'../regControl.db')
 
     async def init_db(self):
         db = await aiosqlite.connect(self.DB_PATH)
