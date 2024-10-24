@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自动签到注册&更新成功！</title>
+    <style>
+        body{
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>自动签到注册&更新成功！</h1>
+    <p>这是一封由程序自动生成的邮件，请勿回复！</p>
+    <p>自动签到程序将会使用你注册时填写的信息为你自动签到，并会在签到失败时向你发送邮件提醒。</p>
+    <p>如果你<b>不希望进行自动签到</b>，请<a href="https://serene.net.cn/">点此</a>进入页面后勾选 取消签到 并提交</p>
+    <p>自动签到程序启动时间约为20:30-21:00，此期间请注意是否收到签到失败的邮件或前往校芜优验证签到状态。</p>
+    <p>注意！如果你在签到时间段内进行注册或更新，你将不会被自动签到，当日你仍然需要进行手动签到！</p>
+    <hr />
+    <p>你注册的信息如下，如若填写错误或需要更新请重新注册提交即可。</p>
+    <p>账号：{{ info.account }}</p>
+    <p>邮箱：{{ info.email }}</p>
+    <p>坐标：{{ info.coordinate }}</p>
+    <hr />
+    <p>最新通知</p>
+    <p><b>{{ notice.title }}</b></p>
+    <p>到期时间:{{ notice.time }}</p>
+    <p>{{ notice.content }}</p>
+</body>
+</html>
