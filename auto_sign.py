@@ -1,11 +1,11 @@
-from core import WJC
-from setting import TIME_SET,TIME_CHCECK_WAIT,SIGN_MAX_TRY_TIMES,TIME_SLEEP_WAIT
+from api.core import WJC
+from api.setting import TIME_SET, SIGN_MAX_TRY_TIMES,TIME_SLEEP_WAIT
 from queue import Queue
 from datetime import datetime,time,date,timedelta
-from db_control import getUserDBControl,getWebDBControl
-import mail_control
+from api.db_control import getUserDBControl
+from api import mail_control
 import asyncio
-from log_setting import logger
+from api.log_setting import logger
 
 class AutoSign:
     def __init__(self):
@@ -119,8 +119,8 @@ class AutoSign:
 
         while not q_bad_list.empty():
             user = q_bad_list.get()
-            mail_content = mail_control.user_mail_gen('签到失败','请检查账号密码等信息是否正确',await self.__error_msg_gen(user['info']))
-            mail_control.user_mail('签到失败',mail_content,user['email'])
+            mail_content = mail_control.user_mail_gen('签到失败', '请检查账号密码等信息是否正确', await self.__error_msg_gen(user['info']))
+            mail_control.user_mail('签到失败', mail_content, user['email'])
             #await mail_control.new_user_mail('签到失败',mail_content,user['email'])
 
             q_bad_list.task_done()
@@ -132,7 +132,7 @@ class AutoSign:
             # 尝试封禁失败用户
             if await db.deactive_user(user['account']):
                 mail_content = mail_control.ban_mail_gen(str(user['account']))
-                mail_control.user_mail('自动签到停止',mail_content,user['email'])
+                mail_control.user_mail('自动签到停止', mail_content, user['email'])
                 # await mail_control.new_user_mail('自动签到停止',mail_content,user['email'])
                 
                 logger.info(f"向用户{user['account']}发送账号禁用成功")
@@ -168,7 +168,7 @@ class AutoSign:
                             'active':user['active'],
                         })
                     mail_content = mail_control.admin_mail_gen(info)
-                    mail_control.admin_mail('签到状态',mail_content)
+                    mail_control.admin_mail('签到状态', mail_content)
                     if self.user_db:
                         await self.user_db.quit()   # 退出数据库
                         self.user_db = None

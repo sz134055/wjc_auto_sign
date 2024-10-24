@@ -2,17 +2,17 @@ from fastapi import FastAPI,Form
 from fastapi.responses import HTMLResponse,JSONResponse,Response
 from datetime import datetime,time,timedelta
 from fastapi.staticfiles import StaticFiles
-from setting import TIME_SET,REMOTE_API_TOKEN,DB_CHOOSE
-from mail_control import user_mail,reg_mail_gen,email_validate_gen
-from db_control import getWebDBControl,getTime,getUserDBControl
+from api.setting import TIME_SET,REMOTE_API_TOKEN,DB_CHOOSE
+from api.mail_control import user_mail,reg_mail_gen
+from api.db_control import getWebDBControl,getTime,getUserDBControl
 import aiofiles
 from pathlib import Path
 import os
-from core import wjcAccountSignTest
+from api.core import wjcAccountSignTest
 import uvicorn
 #from log_setting import logger_set
-from log_setting import logger
-from web_regControl import RegControl
+from api.log_setting import logger
+from api.web_regControl import RegControl
 
 NOW_FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 

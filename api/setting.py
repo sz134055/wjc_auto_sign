@@ -2,7 +2,7 @@ import os.path as os_path
 from configparser import ConfigParser
 
 CURRENT_PATH = os_path.dirname(os_path.abspath(__file__))
-SETTING_FILE_PATH = "setting.ini"
+SETTING_FILE_PATH = "../setting.ini"
 
 __cf = ConfigParser()
 __cf.read(os_path.join(CURRENT_PATH,SETTING_FILE_PATH),encoding="utf-8")

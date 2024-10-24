@@ -2,9 +2,10 @@ import aiosqlite
 import aiomysql
 from time import time
 from datetime import datetime
-from setting import USER_DB_INIT_SQL,FAIL_MAX_TRY_DAYS,NOTICE_DB_INIT_SQL,DB_CHOOSE,TABLE_SET,SQLITE_SET,MYSQL_SET,MYSQL_INIT_SQL
-from log_setting import logger
-from typing import Iterable,Any
+from api.setting import USER_DB_INIT_SQL,FAIL_MAX_TRY_DAYS,NOTICE_DB_INIT_SQL,DB_CHOOSE,TABLE_SET,SQLITE_SET,MYSQL_SET,MYSQL_INIT_SQL
+from api.log_setting import logger
+from typing import Iterable, Any, Optional, List
+
 
 def getTime():
     return str(time()).replace('.','')[:13]
@@ -18,15 +19,15 @@ class DBControlBase:
     async def connect(self):
         raise NotImplementedError
 
-    async def execute(self,sql:str,params:Iterable[Any] | None = None):
+    async def execute(self, sql:str, params: Optional[Iterable[Any]] = None):
         raise NotImplementedError
-    async def query(self,sql:str,params:Iterable[Any] | None = None):
+    async def query(self, sql:str, params: Optional[Iterable[Any]] = None):
         raise NotImplementedError
 
-    async def query_one(self,sql:str,params:Iterable[Any] | None = None):
+    async def query_one(self, sql:str, params: Optional[Iterable[Any]] = None):
         raise NotImplementedError
     
-    async def update(self,sql:str,params:Iterable[Any] | None = None):
+    async def update(self, sql:str, params: Optional[Iterable[Any]] = None):
         raise NotImplementedError
 
     async def close(self):
@@ -52,20 +53,20 @@ class MysqlControl(DBControlBase):
         await self.coon.select_db(MYSQL_SET['db_name'])
         
 
-    async def execute(self,sql:str,params:Iterable[Any] | None = None):
+    async def execute(self, sql:str, params: Optional[Iterable[Any]] = None):
         await self.cur.execute(sql,params)
 
-    async def query(self, sql:str,params:Iterable[Any] | None = None):
+    async def query(self, sql:str, params: Optional[Iterable[Any]] = None):
         await self.execute(sql,params)
         res = await self.cur.fetchall()
         return res
 
-    async def query_one(self, sql:str,params:Iterable[Any] | None = None):
+    async def query_one(self, sql:str, params: Optional[Iterable[Any]] = None):
         await self.execute(sql,params)
         res = await self.cur.fetchone()
         return res
     
-    async def update(self,sql:str,params:Iterable[Any] | None = None):
+    async def update(self, sql:str, params: Optional[Iterable[Any]] = None):
         res = await self.execute(sql,params)
         await self.coon.commit()
         return res
@@ -86,7 +87,7 @@ class SqliteControl(DBControlBase):
         self.coon = await aiosqlite.connect(self.db_path)
         self.coon.row_factory = aiosqlite.Row
         
-    async def execute(self,sql:str,params:Iterable[Any] | None = None):
+    async def execute(self, sql:str, params: Optional[Iterable[Any]] = None):
         if not self.coon:
             await self.connect()
         sql = sql.replace(r'%s','?')    # sqlite3 对不支持 %s进行转换
@@ -94,19 +95,19 @@ class SqliteControl(DBControlBase):
         return cur
         # NO STOP
 
-    async def query(self, sql:str,params:Iterable[Any] | None = None) -> list[dict]:
+    async def query(self, sql:str, params: Optional[Iterable[Any]] = None) -> List[dict]:
         cursor = await self.execute(sql,params)
         res = await cursor.fetchall()
         await self.close()
         return [dict(row) for row in res]
 
-    async def query_one(self, sql:str,params:Iterable[Any] | None = None) -> dict | None:
+    async def query_one(self, sql:str, params: Optional[Iterable[Any]] = None) -> Optional[dict]:
         cursor = await self.execute(sql,params)
         res = await cursor.fetchone()
         await self.close()
         return dict(res) if res else None
     
-    async def update(self,sql:str,params:Iterable[Any] | None = None):
+    async def update(self, sql:str, params: Optional[Iterable[Any]] = None):
         await self.execute(sql,params)
         await self.coon.commit()
         await self.close()

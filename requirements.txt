@@ -9,3 +9,5 @@ requests==2.31.0
 yagmail==0.15.293
 loguru==0.7.2
 uvicorn==0.29.0
+pycryptodome==3.21.0
+Jinja2==3.1.4

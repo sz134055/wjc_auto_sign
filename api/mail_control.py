@@ -1,8 +1,8 @@
 import yagmail
 import yagmail.error
-from setting import MAIL_SET,CURRENT_PATH
+from api.setting import MAIL_SET,CURRENT_PATH
 from smtplib import SMTPDataError
-from log_setting import logger
+from api.log_setting import logger
 from queue import Queue
 from time import sleep
 from threading import Thread

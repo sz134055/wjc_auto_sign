@@ -7,7 +7,7 @@ async def emailVCodeGen() -> str:
 
 class RegControl:
     def __init__(self):
-       self.DB_PATH = '/regControl.db'
+       self.DB_PATH = '../regControl.db'
 
     async def init_db(self):
         db = await aiosqlite.connect(self.DB_PATH)

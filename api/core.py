@@ -1,11 +1,11 @@
 import requests
-from pswd_encrypt import encryptAES
+from api.pswd_encrypt import encryptAES
 from lxml import etree
 from time import time as getTime
 from requests.packages import urllib3
-from log_setting import logger
+from api.log_setting import logger
 from requests.exceptions import ConnectTimeout,Timeout
-from setting import ADDRESS_NAME
+from api.setting import ADDRESS_NAME
 import ddddocr
 from io import BytesIO
 from PIL import Image
