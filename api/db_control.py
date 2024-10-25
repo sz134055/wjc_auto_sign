@@ -2,7 +2,7 @@ import aiosqlite
 import aiomysql
 from time import time
 from datetime import datetime
-from api.setting import USER_DB_INIT_SQL,FAIL_MAX_TRY_DAYS,NOTICE_DB_INIT_SQL,DB_CHOOSE,TABLE_SET,SQLITE_SET,MYSQL_SET,MYSQL_INIT_SQL
+from api.setting import USER_DB_INIT_SQL,FAIL_MAX_TRY_DAYS,NOTICE_DB_INIT_SQL,DB_CHOOSE,TABLE_SET,SQLITE_SET,MYSQL_SET,MYSQL_INIT_SQL,AYN_MAX_USERS
 from api.log_setting import logger
 from typing import Iterable, Any, Optional, List
 
@@ -113,12 +113,67 @@ class SqliteControl(DBControlBase):
         await self.close()
         return None
 
+
+class MysqlPoolControl(DBControlBase):
+    def __init__(self):
+        super().__init__()
+        self.pool = None
+
+    async def connect(self):
+        self.pool = await aiomysql.create_pool(
+            host=MYSQL_SET['host'],
+            port=int(MYSQL_SET['port']), 
+            user=MYSQL_SET['account'], 
+            password=MYSQL_SET['pswd'], 
+            charset='utf8mb4',
+            minsize=5,
+            maxsize=AYN_MAX_USERS
+        )
+
+    async def getCurosr(self):
+        conn = await self.pool.acquire()
+        cur = await conn.cursor()
+        return conn, cur
+
+    async def execute(self, sql:str, params: Optional[Iterable[Any]] = None):
+        conn, cur = await self.getCurosr()
+        await cur.execute(sql, params)
+        await cur.close()
+        await self.pool.release(conn)
+
+    async def query(self, sql: str, params: Iterable[Any] | None = None):
+        conn, cur = await self.getCurosr()
+        await cur.execute(sql, params)
+        res = await cur.fetchall()
+        await cur.close()
+        await self.pool.release(conn)
+        return res
+
+    async def query_one(self, sql: str, params: Iterable[Any] | None = None):
+        conn, cur = await self.getCurosr()
+        await cur.execute(sql, params)
+        res = await cur.fetchone()
+        await cur.close()
+        await self.pool.release(conn)
+        return res
+
+    async def update(self, sql: str, params: Iterable[Any] | None = None):
+        conn, cur = await self.getCurosr()
+        await cur.execute(sql, params)
+        await conn.commit()
+        await cur.close()
+        await self.pool.release(conn)
+    
+    async def close(self):
+        await self.pool.close()
+        await self.pool.wait_closed()
+
 class UserDBControl():
     SQLITE_PATH = SQLITE_SET['user_db_path']
     def __init__(self):
         self.db = None
 
-    async def init_db(self):
+    async def init_db(self,mysql_pool:bool=False):
         if DB_CHOOSE == 'sqlite':
             self.db = SqliteControl()
             await self.db.set_path(self.SQLITE_PATH)
@@ -126,6 +181,10 @@ class UserDBControl():
             await self.db.close()
         elif DB_CHOOSE == 'mysql':
             self.db = MysqlControl()
+            await self.db.connect()
+            await self.db.update(USER_DB_INIT_SQL.replace("AUTOINCREMENT","AUTO_INCREMENT"))
+        elif mysql_pool:
+            self.db = MysqlPoolControl()
             await self.db.connect()
             await self.db.update(USER_DB_INIT_SQL.replace("AUTOINCREMENT","AUTO_INCREMENT"))
         else:
@@ -267,7 +326,7 @@ class WebDBControl():
     def __init__(self):
         self.db = None
 
-    async def init_db(self):
+    async def init_db(self,mysql_pool:bool=False):
         if DB_CHOOSE == 'sqlite':
             self.db = SqliteControl()
             await self.db.set_path(self.SQLITE_PATH)
@@ -276,8 +335,11 @@ class WebDBControl():
         elif DB_CHOOSE == 'mysql':
             self.db = MysqlControl()
             await self.db.connect()
-            
             await self.db.update(NOTICE_DB_INIT_SQL.replace("AUTOINCREMENT","AUTO_INCREMENT"))  # 语法区别修补
+        elif mysql_pool:
+            self.db = MysqlPoolControl()
+            await self.db.connect()
+            await self.db.update(USER_DB_INIT_SQL.replace("AUTOINCREMENT","AUTO_INCREMENT"))
         else:
             raise ValueError("数据库选择参数错误，填写 sqlite 或 mysql")
 
@@ -302,12 +364,12 @@ class WebDBControl():
     async def quit(self):
         if self.db:
             await self.db.close()
-async def getUserDBControl():
+async def getUserDBControl(mysql_pool:bool=False):
     DB = UserDBControl()
     await DB.init_db()
     return DB
 
-async def getWebDBControl():
+async def getWebDBControl(mysql_pool:bool=False):
     DB = WebDBControl()
     await DB.init_db()
     return DB
