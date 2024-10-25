@@ -49,6 +49,7 @@ TIME_SLEEP_WAIT = int(__cf.get("timeSet","sleep_wait"))
 
 SIGN_MAX_TRY_TIMES = int(__cf.get("signInfo","times_max_try"))
 FAIL_MAX_TRY_DAYS = int(__cf.get("signInfo","days_max_try"))
+AYN_MAX_USERS = int(__cf.get("signInfo","ayn_max_users"))
 
 MYSQL_INIT_SQL = f"""
     CREATE DATABASE IF NOT EXISTS {MYSQL_SET['db_name']};
