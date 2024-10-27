@@ -6,6 +6,7 @@ from api.db_control import getUserDBControl
 from api import mail_control
 import asyncio
 from api.log_setting import logger
+from time import time as time_t
 
 class AutoSign:
     def __init__(self):
@@ -149,8 +150,10 @@ class AutoSign:
                     # 仅在开始签到时连接数据库，并在完成签到后退出，防止因长时间等待导致数据库断连引发后续问题
                     self.user_db = await getUserDBControl()
                     logger.info('签到开始')
+                    job_start_time = time_t()    # 耗时计时器起点
                     await self.sign_task()
                     await self.__fail_user_sign()
+                    job_end_time = time_t()      # 耗时计时器终点
                     logger.info('签到结束，开始发送管理员邮件')
                     db = self.user_db
                     users_info = await db.get_users_info()
@@ -179,7 +182,7 @@ class AutoSign:
                     logger.info(f'未到签到开始时间，等待{TIME_CHCECK_WAIT}秒后重新开始签到')
                     await asyncio.sleep(TIME_CHCECK_WAIT)
                     continue
-            logger.info(f'签到结束，等待{TIME_SLEEP_WAIT}')
+            logger.info(f'签到结束，总耗时: {(job_end_time-job_start_time):.2f} 秒，等待{TIME_SLEEP_WAIT}')
             await asyncio.sleep(TIME_SLEEP_WAIT)
 
     @logger.catch
