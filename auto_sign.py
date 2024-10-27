@@ -35,17 +35,17 @@ class AutoSign:
             wjc.login()
             info = wjc.getSignTask()
             if info['code'] == 'fail':
-                logger.error(f"{account} 获取签到信息失败")
+                logger.error(f"{account}获取签到信息失败")
                 raise Exception
             # 对已签到的用户将不会再进行签到
             if not info['info']['aaData'][0]['QDSJ']:
                 info = wjc.sign(coordinate,info['info']['aaData'][0]['DM'],info['info']['aaData'][0]['SJDM'])
             else:
-                info = {'code':'ok','msg':'已存在签到记录，将不会签到'}
-                logger.info(f"{account} 已存在签到记录，将不会进行签到")
+                info = {'code':'ok','msg':f'[{account}]已存在签到记录，将不会签到'}
+                logger.info(info['msg'])
 
             if info['code'] == 'ok':
-                logger.info(f"{account} 签到成功")
+                logger.info(f"[{account}]签到成功")
                 # 为节省邮箱发送次数，不再对成功签到的用户发送通知邮件
                 #mail_content = await mail_control.user_mail_gen(f"签到成功",f"{account} 签到成功",str(info['info']))
                 # await mail_control.user_mail('签到成功',mail_content,email)
@@ -54,7 +54,7 @@ class AutoSign:
             else:
                 raise Exception
         except Exception as e:
-            logger.error(f"{account} 签到失败")
+            logger.error(f"[{account}]签到失败")
             if not fail_try:
                 self.q_fail_user.put({
                     'account':account,
@@ -105,7 +105,7 @@ class AutoSign:
             self.q_fail_user.task_done()
             while user['times_try'] < SIGN_MAX_TRY_TIMES:
                 # 只会在此重试SIGN_MAX_TRY_TIMES-1次
-                logger.info(f"用户{user['account']}第 {user['times_try']+1} 次重试开始")
+                logger.info(f"[{user['account']}]第 {user['times_try']+1} 次重试开始")
                 info = await self.sign(user['account'],user['pswd'],user['coordinate'],user['email'],fail_try=True)
                 if info['code'] == 'ok':
                     # 签到成功的用户将不会被放到失败通知队列
@@ -113,7 +113,7 @@ class AutoSign:
                 user['times_try'] +=1
                 if user['times_try'] >= SIGN_MAX_TRY_TIMES:
                     q_bad_list.put(user)
-            logger.info(f"用户{user['account']}重试结束")
+            logger.info(f"[{user['account']}]重试结束")
             
         logger.info('重试队列结束')
 
@@ -122,7 +122,7 @@ class AutoSign:
             mail_content = await mail_control.user_mail_gen('签到失败', '请检查账号密码等信息是否正确', await self.__error_msg_gen(user['info']))
             await mail_control.user_mail('签到失败', mail_content, user['email'])
             q_bad_list.task_done()
-            logger.info(f"向用户{user['account']}发送签到失败信息成功")
+            logger.info(f"[{user['account']}]发送签到失败信息成功")
 
             # 添加失败天数
             await db.user_fail_day_add(user['account'])
@@ -132,7 +132,7 @@ class AutoSign:
                 mail_content = await mail_control.ban_mail_gen(str(user['account']))
                 await mail_control.user_mail('自动签到停止', mail_content, user['email'])
             
-                logger.info(f"向用户{user['account']}发送账号禁用成功")
+                logger.info(f"[{user['account']}]发送账号禁用成功")
         
     async def time_check(self):
         while True:
