@@ -8,6 +8,10 @@ import asyncio
 from api.log_setting import logger
 from time import time as time_t
 
+'''
+需要全面重写，否则执行情况还是一样，一个一个签到任务排队等待完成，效率极低
+'''
+
 class AutoSign:
     def __init__(self):
         self.q_user = Queue()
@@ -180,7 +184,7 @@ class AutoSign:
                             'active':user['active'],
                         })
                     mail_content = await mail_control.admin_mail_gen(info)
-                    # await mail_control.admin_mail('签到状态', mail_content)
+                    await mail_control.admin_mail('签到状态', mail_content)
                     if self.user_db:
                         await self.user_db.quit()   # 退出数据库
                         self.user_db = None
