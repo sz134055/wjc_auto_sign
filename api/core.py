@@ -1,17 +1,14 @@
-import requests
+import httpx
 from api.pswd_encrypt import encryptAES
 from lxml import etree
 from time import time as getTime
-from requests.packages import urllib3
 from api.log_setting import logger
-from requests.exceptions import ConnectTimeout,Timeout
 from api.setting import ADDRESS_NAME
 import ddddocr
 from io import BytesIO
 from PIL import Image
 import base64
-
-urllib3.disable_warnings()
+from json import JSONDecodeError
 
 class WJC:
     def __init__(self, account, pswd):
@@ -23,31 +20,33 @@ class WJC:
         self.account = account
         self.pswd = pswd
 
-        self.s = requests.session()
-        self.s.verify = False
+        self.s = httpx.AsyncClient()
+        self.s.follow_redirects = True
+        
 
         self.__login_form = {
             'salt': '',
             'cap': '',
             'execution': ''
         }
-        self.__loginInfoGet()
-    def __pswdGen(self, pswd=None, salt=None):
+
+    async def __pswdGen(self, pswd=None, salt=None):
         # return self.__js.call('app.encryptAES', pswd, salt)
         pswd = pswd if pswd else self.pswd
         salt = salt if salt else self.__login_form.get('salt')
         return encryptAES(pswd, salt)
 
+
     def __timeGen(self) -> str:
         return str(getTime()).replace('.','')[:13]
 
 
-    def __isNeedCap(self):
+    async def __isNeedCap(self):
         """
         字符验证码专用（现已弃用）
         """
         try:
-            res = self.s.get('https://ids.uwh.edu.cn/authserver/checkNeedCaptcha.htl',
+            res = await self.s.get('https://ids.uwh.edu.cn/authserver/checkNeedCaptcha.htl',
                 headers=self.headers,
                 params={
                     'username':self.account,
@@ -66,28 +65,28 @@ class WJC:
             logger.error(f'[{self.account}]查询是否需要验证码超时')
             return {'code':'fail','msg':f'[{self.account}]查询是否需要验证码超时'}
 
-    def __cap_gen(self):
+    async def __cap_gen(self):
         """
         字符验证码专用（现已弃用）
         """
         ocr = ddddocr.DdddOcr(show_ad=False)
         try:
-            res = self.s.get('https://ids.uwh.edu.cn/authserver/getCaptcha.htl?'+self.__timeGen(),headers=self.headers)
+            res = await self.s.get('https://ids.uwh.edu.cn/authserver/getCaptcha.htl?'+self.__timeGen(),headers=self.headers)
             if res.status_code == 200:
                 ocr_res = ocr.classification(res.content)
                 logger.info(f'[{self.account}]验证码识别成功 -> {ocr_res}')
                 return {'code':'ok','msg':f'[{self.account}]验证码识别成功','info':{'cap':ocr_res}}
             else:
-                raise ConnectTimeout
-        except ConnectTimeout or Timeout:
+                raise httpx.ConnectTimeout
+        except httpx.ConnectTimeout or httpx.Timeout:
             logger.error(f'[{self.account}]请求验证码失败')
             return {'code':'fail','msg':f'[{self.account}]请求验证码失败','info':{'cap':''}}
             
 
-    def __loginInfoGet(self):
+    async def __loginInfoGet(self):
         try:
-            res = self.s.get('https://ids.uwh.edu.cn/authserver/login?service=https://ehall.uwh.edu.cn/login', headers=self.headers,timeout=45)
-        except ConnectTimeout or Timeout:
+            res = await self.s.get('https://ids.uwh.edu.cn/authserver/login?service=https://ehall.uwh.edu.cn/login', headers=self.headers,timeout=45)
+        except httpx.ConnectTimeout or httpx.Timeout:
             logger.error(f'[{self.account}]请求登录信息超时')
             return {'code':'fail','msg':f'[{self.account}]请求登录息超时'}
         
@@ -111,12 +110,13 @@ class WJC:
             logger.error(f"{msg['msg']}\n{msg['info']['code']}\n{msg['info']['content']}")
             return msg
 
-    def login(self):
-        logger.info(f"开始登录账号{self.account}")
+    async def login(self):
+        logger.info(f"[{self.account}]开始登录账号")
         if not self.account or not self.pswd:
             msg = {'code': 'fail', 'msg': '账号或密码不能为空', 'info': {}}
             logger.error(f"{msg['msg']}")
             return msg
+        await self.__loginInfoGet()
         if not self.__login_form.get('salt') or not self.__login_form.get('execution'):
             msg = {'code': 'fail', 'msg': f'[{self.account}]无加密参数', 'info': {}}
             logger.error(f"{msg['msg']}")
@@ -130,7 +130,7 @@ class WJC:
 
         data_form = {
             'username': self.account,
-            'password': self.__pswdGen(self.pswd, self.__login_form['salt']),
+            'password': await self.__pswdGen(self.pswd, self.__login_form['salt']),
             'captcha': cap,
             '_eventId': 'submit',
             'cllt': 'userNameLogin',
@@ -139,7 +139,7 @@ class WJC:
             'execution': self.__login_form['execution']
         }
         # 滑块识别
-        if not SliderPass(self.s).start():
+        if not await SliderPass(self.s).start():
             logger.error(f'[{self.account}]验证码通过失败')
             return {'code':'fail','msg':f'[{self.account}]验证码通过失败'}
 
@@ -151,20 +151,20 @@ class WJC:
             'Accept-Language':'zh-CN,zh;q=0.9',
         }
         try:
-            res = self.s.post('https://ids.uwh.edu.cn/authserver/login?service=https://ehall.uwh.edu.cn/login',headers=headers,data=data_form,verify=False,timeout=45)
-            res_cas = self.s.post('https://ehall.uwh.edu.cn/student/cas',timeout=45)
-        except ConnectTimeout or Timeout:
+            res = await self.s.post('https://ids.uwh.edu.cn/authserver/login?service=https://ehall.uwh.edu.cn/login',headers=headers,data=data_form,timeout=45)
+            res_cas = await self.s.post('https://ehall.uwh.edu.cn/student/cas',timeout=45)
+        except httpx.ConnectTimeout or httpx.Timeout:
             logger.error(f'[{self.account}]请求登录超时')
             return {'code':'fail','msg':f'[{self.account}]请求登录超时'}
         
-        cookie = ''
-        for k,v in self.s.cookies.get_dict().items():
-            cookie += k+'='+v+';'
+        # cookie = ''
+        # for k,v in self.s.cookies.items():
+        #     cookie += k+'='+v+';'
         msg = {'code':'ok','msg':f'[{self.account}]获取Cookies','info':{}}  # 不代表登录成功
         logger.info(f"{msg['msg']}")
         return msg
     
-    def getSignTask(self):
+    async def getSignTask(self):
         api = 'https://ehall.uwh.edu.cn/student/content/tabledata/student/sign/stu/sign'
         params_load = {
             "bSortable_0": "false",
@@ -177,8 +177,8 @@ class WJC:
             "_t_s_": self.__timeGen()
         }
         try:
-            res = self.s.get(api, params=params_load,timeout=45)
-        except ConnectTimeout or Timeout:
+            res = await self.s.get(api, params=params_load,timeout=45)
+        except httpx.ConnectTimeout or httpx.Timeout:
             logger.error(f'[{self.account}]请求签到信息超时')
             return {'code':'fail','msg':f'[{self.account}]请求签到息超时'}
         
@@ -187,7 +187,7 @@ class WJC:
                 msg = {'code': 'ok', 'msg': f'[{self.account}]成功获取签到任务', 'info': res.json()}
                 logger.info(f"{msg['msg']}")
                 return msg
-            except requests.exceptions.JSONDecodeError:
+            except JSONDecodeError:
                 msg = {'code': 'fail', 'msg': f'[{self.account}]获取签到任务失败', 'info': {'code': res.status_code, 'content': res.text}}
                 logger.error(f"{msg['msg']}\n{msg['info']}")
                 return msg
@@ -196,7 +196,7 @@ class WJC:
             logger.error(f"{msg['msg']}\n{msg['info']}")
             return msg
 
-    def sign(self,coordinate:str,dm:str,sjdm:str):
+    async def sign(self,coordinate:str,dm:str,sjdm:str):
         api = 'https://ehall.uwh.edu.cn/student/content/student/sign/stu/sign'
         params_load = {
             '_t_s_':self.__timeGen()
@@ -215,7 +215,7 @@ class WJC:
         }
 
         try:
-            res = self.s.post(api,params=params_load, data=data_form,headers=self.headers,timeout=45)
+            res = await self.s.post(api,params=params_load, data=data_form,headers=self.headers,timeout=45)
         # except ConnectTimeout or Timeout:
         except Exception:   # 增大异常捕获范围
             logger.error(f'[{self.account}]请求签到超时')
@@ -229,14 +229,14 @@ class WJC:
             logger.error(f"{msg['msg']}\n{msg['info']}")
             return msg
 
-    def isLoginSuccess(self) -> bool:
-        if(self.getSignTask()['code'] == 'ok'):
+    async def isLoginSuccess(self) -> bool:
+        if((await self.getSignTask())['code'] == 'ok'):
             return True
         return False
 
 
 class SliderPass:
-    def __init__(self,s:requests.session):
+    def __init__(self,s:httpx.AsyncClient):
         self.s = s
         self.headers = {
             #'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 (4714622976) cpdaily/9.4.0  wisedu/9.4.0'
@@ -247,7 +247,7 @@ class SliderPass:
     def __timeGen(self) -> str:
         return str(getTime()).replace('.','')[:13]
 
-    def __pic64_resize(self,content:str,target_width:int,target_height:int=None):
+    async def __pic64_resize(self,content:str,target_width:int,target_height:int=None):
         img = Image.open(BytesIO(base64.b64decode(content)))
         if not target_height:
             target_height = int(round(float(img.size[1]) * (target_width / float(img.size[0]))))
@@ -274,7 +274,7 @@ class SliderPass:
 
 
 
-    def get_position(self,bgImg:str,sliderImg:str):
+    async def get_position(self,bgImg:str,sliderImg:str):
         det = ddddocr.DdddOcr(det=False,ocr=False,show_ad=False)
         s_bytes = BytesIO(base64.b64decode(sliderImg))
         bg_bytes = BytesIO(base64.b64decode(bgImg))
@@ -292,9 +292,9 @@ class SliderPass:
         res = self.__calculate_new_position(Image.open(bg_bytes).size[0],280,res['target'][0])
         return res
 
-    def get_slider(self) -> dict:
+    async def get_slider(self) -> dict:
         try:
-            res = self.s.get('https://ids.uwh.edu.cn/authserver/common/openSliderCaptcha.htl',
+            res = await self.s.get('https://ids.uwh.edu.cn/authserver/common/openSliderCaptcha.htl',
                 headers=self.headers,
                 params={
                     '_':self.__timeGen()
@@ -308,9 +308,9 @@ class SliderPass:
             logger.error(f'请求滑块验证码失败\n{e}')
             return {}
 
-    def verify(self,pos_x:int) -> bool:
+    async def verify(self,pos_x:int) -> bool:
         try:
-            res = self.s.post('https://ids.uwh.edu.cn/authserver/common/verifySliderCaptcha.htl',
+            res = await self.s.post('https://ids.uwh.edu.cn/authserver/common/verifySliderCaptcha.htl',
                 headers=self.headers,
                 data={
                     'canvasLength':280,
@@ -332,25 +332,25 @@ class SliderPass:
         except Exception as e:
             logger.error(f'滑块验证失败\n{e}')
             return False
-    def start(self,max_try:int=3):
+    async def start(self,max_try:int=3):
         cap_pass = False
         try_times = 1
         while not cap_pass or try_times > max_try:
-            slider = self.get_slider()
+            slider =await self.get_slider()
             if not slider:
                 try_times+=1
                 break
-            cap_x = self.get_position(
+            cap_x = await self.get_position(
                 bgImg=slider['bigImage'],
                 sliderImg=slider['smallImage']
             )
             logger.info(f'滑块位置:{cap_x}')
-            cap_pass = self.verify(cap_x)
+            cap_pass =await self.verify(cap_x)
         return cap_pass
         
             
 
 async def wjcAccountSignTest(account:str,pswd:str) -> bool:
     wjc = WJC(account,pswd)
-    wjc.login()
-    return wjc.isLoginSuccess()
+    await wjc.login()
+    return await wjc.isLoginSuccess()
