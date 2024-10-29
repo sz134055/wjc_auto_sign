@@ -79,21 +79,15 @@ class AutoSign:
         data = await db.get_users_info()
         logger.info(f"加载用户 {len(data)} 个")
         for u in data:
-            if not u['active']:
+            if u['active'] and (await db.check_user(u['account']))['code'] == 'ok':
                 # active 0 跳过该用户
-                continue
-            
-            if (await db.check_user(u['account']))['code'] == 'ok':
                 u_info = {
                     'account':u['account'],
                     'pswd':u['pswd'],
                     'coordinate':u['coordinate'],
                     'email':u['email']
                 }
-
                 self.q_user.put(u_info)
-
-            self.q_user.put(u_info)
         logger.info(f"待签到用户数 {self.q_user.qsize()} 个")
 
     async def sign_task_create(self) -> list:
