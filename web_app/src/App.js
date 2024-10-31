@@ -50,7 +50,7 @@ export default function RegisterForm() {
       gap='small'
       >
         {contextHolder}
-      <Title>Auto Sign</Title>
+      <Title>Auto Check-In</Title>
       <Steps 
         size='small'
         current={nowSetp}
