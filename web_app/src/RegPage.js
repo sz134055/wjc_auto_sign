@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState,useEffect } from 'react';
 import { TinyColor } from '@ctrl/tinycolor';
 import { Form,message,Input,ConfigProvider,Button,Typography,Modal,Checkbox } from 'antd';
 import { FireOutlined } from '@ant-design/icons';
@@ -14,8 +14,10 @@ export default function RegPage(props) {
   
     const [form] = Form.useForm();
     const [nowLoading,setNowLoading] = useState(false);
-    const [isModalOpen,setModalOpen] = useState(false);
+    const [isModalOpen,setModalOpen] = useState(true);
     const [cancelTask,setCancelTask] = useState(false);
+    const [usersNum,setUsersNum] = useState(0);
+    const [adminAccount,setAdminAccount] = useState("未提供");
 
     async function checkAccount(){
       setNowLoading(true);
@@ -82,7 +84,19 @@ export default function RegPage(props) {
           setNowLoading(false);
         });
     }
-  
+    
+    useEffect(() => {
+      axios.get('/getSiteInfo')
+      .then(res=>{
+        if(res.data.code === 'ok'){
+          setUsersNum(res.data.info.nums);
+          setAdminAccount(res.data.info.admin);
+        }
+      }).catch((error)=>{
+        console.log(error);
+      })
+    },[]);
+
     return (
       <>
         <Title level={3}>填写账号</Title>
@@ -164,6 +178,7 @@ export default function RegPage(props) {
           </Form.Item>
         </Form>
         <Link onClick={()=>{setModalOpen(true)}}>这是什么？点我查看说明</Link>
+        <span>项目开源地址：</span>
         <p>
             <a href='https://gitee.com/saucer216/wjc_auto_sign'><img src='https://gitee.com/saucer216/wjc_auto_sign/widgets/widget_5.svg?color=red' alt='Fork me on Gitee'></img></a>
             <a href='https://github.com/sz134055/wjc_auto_sign'><img src='https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png' width='50px' height='50px' alt='Fork me on GitHub'></img></a>
@@ -172,13 +187,18 @@ export default function RegPage(props) {
           title="使用说明"
           open={isModalOpen}
           onOk={() => {setModalOpen(false)}}
-          onCancel={() => {setModalOpen(false)}}
+          okText="我知道了"
+          cancelButtonProps={{style:{display:'none'}}}
         >
           <Typography>
             <p>这是一个在线的，可为你在每晚自动签到的脚本程序。</p>
             <p>它绕过了一些不必要的步骤，因此可以帮你更快地完成签到，甚至在他人校芜优打开失败的情况下。</p>
             <p>你需要填写你的校芜优的账号与密码，以及一个用于接收签到信息的邮箱（很重要），程序会在签到失败的情况下向你发送邮件提醒。</p>
             <p>完成注册后，脚本会自动为你进行签到，你要做的只是关注下你的邮箱，确保签到成功即可。</p>
+            <p style={{color:'red'}}>你的密码会明文存储，所以一定一定不要使用常用密码！</p>
+            <p>当前站点搭建与管理员账号：<span style={{'font-weight':'bold'}}>{adminAccount}</span></p>
+            <p style={{color:'red'}}>校芜优账户涉及到了你在校消费，若你担心账户安全，可下滑网页找到脚本开源地址，自行下载并搭建使用。</p>
+            <p>受限于学校服务器性能以及注册用户数量的问题，可能需要一定的时间才能帮你完成签到。当前总注册用户数：<span style={{'font-weight':'bold'}}>{usersNum}</span></p>
           </Typography>
         </Modal>
       </>
