@@ -2,7 +2,7 @@ from fastapi import FastAPI,Form
 from fastapi.responses import HTMLResponse,JSONResponse,Response
 from datetime import datetime,time,timedelta
 from fastapi.staticfiles import StaticFiles
-from api.setting import TIME_SET,REMOTE_API_TOKEN,DB_CHOOSE
+from api.setting import TIME_SET,REMOTE_API_TOKEN,DB_CHOOSE,ADMIN_ACCOUNT
 from api.mail_control import user_mail,reg_mail_gen
 from api.db_control import getWebDBControl,getTime,getUserDBControl
 import aiofiles
@@ -133,6 +133,14 @@ async def submit(account:str=Form(),coordinate:str=Form()):
     else:
         logger.error(f'用户 {account} 注册失败，未通过验证')
         return JSONResponse(content={'code':'fail','msg':'当前账号未通过验证'})
+
+@app.get('/getSiteInfo')
+async def get_site_info():
+    """ 响应一些信息给前端 """
+    DB = await getUserDBControl()
+    nums = await DB.get_users_num()
+    await DB.quit()
+    return JSONResponse(content={'code':'ok','msg':'成功获取站点信息','info':{'admin':ADMIN_ACCOUNT,'nums':nums}})
 
 @app.get('/noticeGet')
 async def noticeGet():

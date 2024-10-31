@@ -42,6 +42,8 @@ MAIL_SET = {
     'token':__cf.get("mail","token")
 }
 
+ADMIN_ACCOUNT = MAIL_SET['admin'] if MAIL_SET['admin'] else "未设置"
+
 ADDRESS_NAME = __cf.get("signInfo","address_name")
 
 TIME_CHCECK_WAIT = int(__cf.get("timeSet","check_wait"))

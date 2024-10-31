@@ -324,6 +324,12 @@ class UserDBControl():
         await db.update(f"UPDATE {TABLE_SET['user']} SET failDays=0 WHERE account = %s", (account,))
         logger.info(f"重置用户{account}连续签到失败天数")
 
+    async def get_users_num(self) -> int:
+        db = self.db
+        nums = await db.query_one(f"SELECT COUNT(*) FROM {TABLE_SET['user']}")
+        nums = nums['COUNT(*)']
+        return nums
+
     async def quit(self):
         if self.db:
             await self.db.close()
