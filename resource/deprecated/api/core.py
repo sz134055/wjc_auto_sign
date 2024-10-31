@@ -1,11 +1,11 @@
 import requests
-from pswd_encrypt import encryptAES
+from api.pswd_encrypt import encryptAES
 from lxml import etree
 from time import time as getTime
 from requests.packages import urllib3
-from log_setting import logger
+from api.log_setting import logger
 from requests.exceptions import ConnectTimeout,Timeout
-from setting import ADDRESS_NAME
+from api.setting import ADDRESS_NAME
 import ddddocr
 from io import BytesIO
 from PIL import Image
@@ -57,14 +57,14 @@ class WJC:
             )
             if res.status_code == 200:
                 res_json = res.json()
-                logger.info(f'查询是否需要验证码成功')
-                return {'code':'ok','msg':'验证是否需要验证码成功','info':{'needCap':res_json['isNeed']}}
+                logger.info(f'[{self.account}]查询是否需要验证码成功')
+                return {'code':'ok','msg':f'[{self.account}]验证是否需要验证码成功','info':{'needCap':res_json['isNeed']}}
             else:
-                logger.error(f'查询是否需要验证码失败 [CODE]{res.status_code}\n[CONTENT] {res.text}')
-                return {'code':'fail','msg':'查询是否需要验证码失败','info':{'code':res.status_code,'content':res.text}}
+                logger.error(f'[{self.account}]查询是否需要验证码失败 [CODE]{res.status_code}\n[CONTENT] {res.text}')
+                return {'code':'fail','msg':f'[{self.account}]查询是否需要验证码失败','info':{'code':res.status_code,'content':res.text}}
         except Exception as e:
-            logger.error('查询是否需要验证码超时')
-            return {'code':'fail','msg':'查询是否需要验证码超时'}
+            logger.error(f'[{self.account}]查询是否需要验证码超时')
+            return {'code':'fail','msg':f'[{self.account}]查询是否需要验证码超时'}
 
     def __cap_gen(self):
         """
@@ -75,21 +75,21 @@ class WJC:
             res = self.s.get('https://ids.uwh.edu.cn/authserver/getCaptcha.htl?'+self.__timeGen(),headers=self.headers)
             if res.status_code == 200:
                 ocr_res = ocr.classification(res.content)
-                logger.info(f'验证码识别成功 -> {ocr_res}')
-                return {'code':'ok','msg':f'验证码识别成功','info':{'cap':ocr_res}}
+                logger.info(f'[{self.account}]验证码识别成功 -> {ocr_res}')
+                return {'code':'ok','msg':f'[{self.account}]验证码识别成功','info':{'cap':ocr_res}}
             else:
                 raise ConnectTimeout
         except ConnectTimeout or Timeout:
-            logger.error('请求验证码失败')
-            return {'code':'fail','msg':'请求验证码失败','info':{'cap':''}}
+            logger.error(f'[{self.account}]请求验证码失败')
+            return {'code':'fail','msg':f'[{self.account}]请求验证码失败','info':{'cap':''}}
             
 
     def __loginInfoGet(self):
         try:
             res = self.s.get('https://ids.uwh.edu.cn/authserver/login?service=https://ehall.uwh.edu.cn/login', headers=self.headers,timeout=45)
         except ConnectTimeout or Timeout:
-            logger.error('请求登录信息超时')
-            return {'code':'fail','msg':'请求登录息超时'}
+            logger.error(f'[{self.account}]请求登录信息超时')
+            return {'code':'fail','msg':f'[{self.account}]请求登录息超时'}
         
         if res.status_code == 200:
             html = etree.HTML(res.text)
@@ -98,28 +98,28 @@ class WJC:
                     'salt': html.xpath('//input[@id="pwdEncryptSalt"][1]/@value')[0],
                     'execution': html.xpath('//input[@id="execution"][1]/@value')[0]
                 })
-                msg = {'code': 'ok', 'msg': '成功获取加密参数', 'info': {}}
-                logger.info(f"[{msg['code']}] {msg['msg']}")
+                msg = {'code': 'ok', 'msg': f'[{self.account}]成功获取加密参数', 'info': {}}
+                logger.info(f"{msg['msg']}")
                 return msg
             except Exception as e:
-                msg = {'code': 'error', 'msg': '尝试获取加密参数出现错误，错误信息会被保存于info中', 'info': {'msg': e}}
-                logger.error(f"[{msg['code']}] {msg['msg']}\n{msg['info']['msg']}")
+                msg = {'code': 'error', 'msg': f'[{self.account}]尝试获取加密参数出现错误，错误信息会被保存于info中', 'info': {'msg': e}}
+                logger.error(f"{msg['msg']}\n{msg['info']['msg']}")
                 return msg
         else:
-            msg = {'code': 'fail', 'msg': '请求登录界面失败，具体信息将会被保存在info中',
+            msg = {'code': 'fail', 'msg': f'[{self.account}]请求登录界面失败，具体信息将会被保存在info中',
                     'info': {'code': res.status_code, 'content': res.text}}
-            logger.error(f"[{msg['code']}] {msg['msg']}\n{msg['info']['code']}\n{msg['info']['content']}")
+            logger.error(f"{msg['msg']}\n{msg['info']['code']}\n{msg['info']['content']}")
             return msg
 
     def login(self):
         logger.info(f"开始登录账号{self.account}")
         if not self.account or not self.pswd:
             msg = {'code': 'fail', 'msg': '账号或密码不能为空', 'info': {}}
-            logger.error(f"[{msg['code']}] {msg['msg']}")
+            logger.error(f"{msg['msg']}")
             return msg
         if not self.__login_form.get('salt') or not self.__login_form.get('execution'):
-            msg = {'code': 'fail', 'msg': '无加密参数', 'info': {}}
-            logger.error(f"[{msg['code']}] {msg['msg']}")
+            msg = {'code': 'fail', 'msg': f'[{self.account}]无加密参数', 'info': {}}
+            logger.error(f"{msg['msg']}")
             return msg
         
         cap = ''
@@ -140,8 +140,8 @@ class WJC:
         }
         # 滑块识别
         if not SliderPass(self.s).start():
-            logger.error('验证码通过失败')
-            return {'code':'fail','msg':'验证码通过失败'}
+            logger.error(f'[{self.account}]验证码通过失败')
+            return {'code':'fail','msg':f'[{self.account}]验证码通过失败'}
 
         headers = {
             'User-Agent':'Mozilla/5.0 (iPhone; CPU iPhone OS 14_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.2 Mobile/15E148 Safari/604.1',
@@ -154,14 +154,14 @@ class WJC:
             res = self.s.post('https://ids.uwh.edu.cn/authserver/login?service=https://ehall.uwh.edu.cn/login',headers=headers,data=data_form,verify=False,timeout=45)
             res_cas = self.s.post('https://ehall.uwh.edu.cn/student/cas',timeout=45)
         except ConnectTimeout or Timeout:
-            logger.error('请求登录超时')
-            return {'code':'fail','msg':'请求登录超时'}
+            logger.error(f'[{self.account}]请求登录超时')
+            return {'code':'fail','msg':f'[{self.account}]请求登录超时'}
         
         cookie = ''
         for k,v in self.s.cookies.get_dict().items():
             cookie += k+'='+v+';'
-        msg = {'code':'ok','msg':f'({self.account})获取Cookies','info':{}}  # 不代表登录成功
-        logger.info(f"[{msg['code']}] {msg['msg']}")
+        msg = {'code':'ok','msg':f'[{self.account}]获取Cookies','info':{}}  # 不代表登录成功
+        logger.info(f"{msg['msg']}")
         return msg
     
     def getSignTask(self):
@@ -179,21 +179,21 @@ class WJC:
         try:
             res = self.s.get(api, params=params_load,timeout=45)
         except ConnectTimeout or Timeout:
-            logger.error('请求签到信息超时')
-            return {'code':'fail','msg':'请求签到息超时'}
+            logger.error(f'[{self.account}]请求签到信息超时')
+            return {'code':'fail','msg':f'[{self.account}]请求签到息超时'}
         
         if res.status_code == 200:
             try:
-                msg = {'code': 'ok', 'msg': '成功获取签到任务', 'info': res.json()}
-                logger.info(f"[{msg['code']}] {msg['msg']}")
+                msg = {'code': 'ok', 'msg': f'[{self.account}]成功获取签到任务', 'info': res.json()}
+                logger.info(f"{msg['msg']}")
                 return msg
             except requests.exceptions.JSONDecodeError:
-                msg = {'code': 'fail', 'msg': '获取签到任务失败', 'info': {'code': res.status_code, 'content': res.text}}
-                logger.error(f"[{msg['code']}] {msg['msg']}\n{msg['info']}")
+                msg = {'code': 'fail', 'msg': f'[{self.account}]获取签到任务失败', 'info': {'code': res.status_code, 'content': res.text}}
+                logger.error(f"{msg['msg']}\n{msg['info']}")
                 return msg
         else:
-            msg = {'code': 'fail', 'msg': '获取签到任务失败', 'info': {'code': res.status_code, 'content': res.text}}
-            logger.error(f"[{msg['code']}] {msg['msg']}\n{msg['info']}")
+            msg = {'code': 'fail', 'msg': f'[{self.account}]获取签到任务失败', 'info': {'code': res.status_code, 'content': res.text}}
+            logger.error(f"{msg['msg']}\n{msg['info']}")
             return msg
 
     def sign(self,coordinate:str,dm:str,sjdm:str):
@@ -218,15 +218,15 @@ class WJC:
             res = self.s.post(api,params=params_load, data=data_form,headers=self.headers,timeout=45)
         # except ConnectTimeout or Timeout:
         except Exception:   # 增大异常捕获范围
-            logger.error('请求签到超时')
-            return {'code':'fail','msg':'请求签到超时'}
+            logger.error(f'[{self.account}]请求签到超时')
+            return {'code':'fail','msg':f'[{self.account}]请求签到超时'}
         if res.status_code == 200:
-            msg = {'code': 'ok', 'msg': '成功签到', 'info': res.json()}
-            logger.info(f"[{msg['code']}] {msg['msg']}")
+            msg = {'code': 'ok', 'msg': f'[{self.account}]成功签到', 'info': res.json()}
+            logger.info(f"{msg['msg']}")
             return msg
         else:
-            msg = {'code': 'fail', 'msg': '签到失败', 'info': {'code': res.status_code, 'content': res.text}}
-            logger.error(f"[{msg['code']}] {msg['msg']}\n{msg['info']}")
+            msg = {'code': 'fail', 'msg': f'[{self.account}]签到失败', 'info': {'code': res.status_code, 'content': res.text}}
+            logger.error(f"{msg['msg']}\n{msg['info']}")
             return msg
 
     def isLoginSuccess(self) -> bool:

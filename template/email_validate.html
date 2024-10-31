@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自动签到注册验证码</title>
+    <style>
+        body{
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <p>你的验证码为：<b>{{ code }}</b></p>
+    <p>验证码有效期为3分钟，请尽快填入！</p>
+    <hr />
+    <p>最新通知</p>
+    <p><b>{{ notice.title }}</b></p>
+    <p>到期时间:{{ notice.time }}</p>
+    <p>{{ notice.content }}</p>
+</body>
+</html>

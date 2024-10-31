@@ -2,17 +2,17 @@ from fastapi import FastAPI,Form
 from fastapi.responses import HTMLResponse,JSONResponse,Response
 from datetime import datetime,time,timedelta
 from fastapi.staticfiles import StaticFiles
-from setting import TIME_SET,REMOTE_API_TOKEN,DB_CHOOSE
-from mail_control import user_mail,reg_mail_gen,email_validate_gen
-from db_control import getWebDBControl,getTime,getUserDBControl
+from api.setting import TIME_SET,REMOTE_API_TOKEN,DB_CHOOSE,ADMIN_ACCOUNT
+from api.mail_control import user_mail,reg_mail_gen
+from api.db_control import getWebDBControl,getTime,getUserDBControl
 import aiofiles
 from pathlib import Path
 import os
-from core import wjcAccountSignTest
+from api.core import wjcAccountSignTest
 import uvicorn
 #from log_setting import logger_set
-from log_setting import logger
-from web_regControl import RegControl
+from api.log_setting import logger
+from api.web_regControl import RegControl
 
 NOW_FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -68,7 +68,7 @@ async def check_account(account:str=Form(),pswd:str=Form(),email:str=Form()):
     if(await eDB.check_user(account,pswd) or await wjcAccountSignTest(account,pswd)):
         emailVCode = await eDB.updata_user(account,pswd,email)
         logger.info(f'用户 {account} 尝试注册，邮箱验证码将发送至 {email}')
-        res = user_mail('自动签到注册邮箱验证码',f'您的验证码为：{emailVCode}',email)
+        res = await user_mail('自动签到注册邮箱验证码',f'您的验证码为：{emailVCode}',email)
         if(res):
             logger.info(f'验证码发送至{email}')
             return JSONResponse(content={'code':'ok','msg':'验证码发送成功，请检查你的邮箱'})
@@ -127,12 +127,20 @@ async def submit(account:str=Form(),coordinate:str=Form()):
         DB = await getUserDBControl()
         await DB.add_user(account,user_info['pswd'],user_info['email'],coordinate)
         await DB.quit()
-        user_mail('自动签到注册成功',reg_mail_gen({'account':account,'email':user_info['email'],'coordinate':coordinate}),user_info['email'])
+        await user_mail('自动签到注册成功',await reg_mail_gen({'account':account,'email':user_info['email'],'coordinate':coordinate}),user_info['email'])
         logger.info(f'用户 {account} 注册成功')
         return JSONResponse(content={'code':'ok','msg':'注册成功'})
     else:
         logger.error(f'用户 {account} 注册失败，未通过验证')
         return JSONResponse(content={'code':'fail','msg':'当前账号未通过验证'})
+
+@app.get('/getSiteInfo')
+async def get_site_info():
+    """ 响应一些信息给前端 """
+    DB = await getUserDBControl()
+    nums = await DB.get_users_num()
+    await DB.quit()
+    return JSONResponse(content={'code':'ok','msg':'成功获取站点信息','info':{'admin':ADMIN_ACCOUNT,'nums':nums}})
 
 @app.get('/noticeGet')
 async def noticeGet():
@@ -179,5 +187,5 @@ async def noticePush(api_token:str=Form(),title:str=Form(),content:str=Form(),ti
 
 
 if __name__ == '__main__':
-    uvicorn.run(app='web_app:app',host='0.0.0.0',port=80,reload=True)
+    uvicorn.run(app='web_app:app',host='0.0.0.0',port=8000,reload=True)
     #uvicorn.run(app='web_app:app',host='0.0.0.0',port=443,ssl_keyfile='/home/admin/certificate/certkey.key',ssl_certfile='/home/admin/certificate/certfile.cer')

@@ -1,0 +1,17 @@
+services:
+  web:
+    build:
+      context: .
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    volumes:
+      - ./setting.ini:/app/setting.ini
+      - ./logs:/app/logs
+    command: python web_app.py
+  sign:
+    build:
+      context: .
+    volumes:
+      - ./setting.ini:/app/setting.ini
+      - ./logs:/app/logs
+    command: python auto_sign.py

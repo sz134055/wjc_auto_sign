@@ -2,7 +2,7 @@ import os.path as os_path
 from configparser import ConfigParser
 
 CURRENT_PATH = os_path.dirname(os_path.abspath(__file__))
-SETTING_FILE_PATH = "setting.ini"
+SETTING_FILE_PATH = os_path.join(CURRENT_PATH,"../setting.ini")
 
 __cf = ConfigParser()
 __cf.read(os_path.join(CURRENT_PATH,SETTING_FILE_PATH),encoding="utf-8")
@@ -42,6 +42,8 @@ MAIL_SET = {
     'token':__cf.get("mail","token")
 }
 
+ADMIN_ACCOUNT = MAIL_SET['admin'] if MAIL_SET['admin'] else "未设置"
+
 ADDRESS_NAME = __cf.get("signInfo","address_name")
 
 TIME_CHCECK_WAIT = int(__cf.get("timeSet","check_wait"))
@@ -49,6 +51,7 @@ TIME_SLEEP_WAIT = int(__cf.get("timeSet","sleep_wait"))
 
 SIGN_MAX_TRY_TIMES = int(__cf.get("signInfo","times_max_try"))
 FAIL_MAX_TRY_DAYS = int(__cf.get("signInfo","days_max_try"))
+AYN_MAX_USERS = int(__cf.get("signInfo","ayn_max_users"))
 
 MYSQL_INIT_SQL = f"""
     CREATE DATABASE IF NOT EXISTS {MYSQL_SET['db_name']};

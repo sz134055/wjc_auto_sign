@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>签到日志</title>
+</head>
+<body>
+    <table>
+        <thead>
+            <tr>
+                <th>账号</th>
+                <th>是否签到</th>
+                <th>成功次数</th>
+                <th>总次数</th>
+                <th>状态</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for i in info_list %}
+            <tr>
+                <td>{{ i.account }}</td>
+                <td>{{ i.status }}</td>
+                <td>{{ i.success }}</td>
+                <td>{{ i.total }}</td>
+                <td>{% if i.active %}启用{% else %}禁用{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p>最新通知</p>
+    <p><b>{{ notice.title }}</b></p>
+    <p>到期时间:{{ notice.time }}</p>
+    <p>{{ notice.content }}</p>
+</body>
+</html>
