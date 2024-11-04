@@ -29,7 +29,7 @@ class RegControl:
     async def init_user(self,account,pswd,email) -> str:
         emailVCode = await emailVCodeGen()
         db = await aiosqlite.connect(self.DB_PATH)
-        await db.execute("INSERT INTO regInfo VALUES (?,?,?,?,?,?)",(account,pswd,email,emailVCode,str(int(tTime()*1000)),0))
+        await db.execute("INSERT INTO regInfo VALUES (?,?,?,?,?,?)",(account,pswd,email,emailVCode,str(int(tTime())),0))
         await db.commit()
         await db.close()
         return emailVCode
@@ -51,7 +51,7 @@ class RegControl:
         if result is None:
             await db.close()
             return False
-        elif result[3] == emailVCode and ((int(tTime()*1000) - int(result[4]))<=1000*60*3):
+        elif result[3] == emailVCode and ((int(tTime()) - int(result[4]))<=60*10):
             await db.execute("UPDATE regInfo SET isPass=1 WHERE account=?",(account,))
             await db.commit()
             await db.close()
@@ -76,7 +76,7 @@ class RegControl:
             return await self.init_user(account,pswd,email)
         else:
             emailVCode = await emailVCodeGen()
-            await db.execute("UPDATE regInfo SET pswd=?,email=?,emailVCode=?,emailVCodeTime=? WHERE account=?",(pswd,email,emailVCode,str(int(tTime()*1000)),account))
+            await db.execute("UPDATE regInfo SET pswd=?,email=?,emailVCode=?,emailVCodeTime=? WHERE account=?",(pswd,email,emailVCode,str(int(tTime())),account))
             await db.commit()
             await db.close()
             return emailVCode
@@ -100,3 +100,12 @@ class RegControl:
                 'emailVCodeTime':res[4],
                 'isPass':res[5]
             }
+        
+    async def is_vcode_sent(self,account) -> bool:
+        db = await aiosqlite.connect(self.DB_PATH)
+        cursor = await db.execute("SELECT emailVCodeTime FROM regInfo WHERE account=?",(account,))
+        res = await cursor.fetchone()
+        if res and ((int(tTime()) - int(res[0])) <= 60*10):
+            return False
+        else:
+            return True
