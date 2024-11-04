@@ -180,7 +180,7 @@ class UserDBControl():
         self.db = None
 
     async def init_db(self,mysql_pool:bool=False):
-        if mysql_pool:
+        if mysql_pool or DB_CHOOSE == 'mysql':
             self.db = MysqlPoolControl()
             await self.db.connect()
             await self.db.update(USER_DB_INIT_SQL.replace("AUTOINCREMENT","AUTO_INCREMENT"))
@@ -189,10 +189,10 @@ class UserDBControl():
             await self.db.set_path(self.SQLITE_PATH)
             await self.db.update(USER_DB_INIT_SQL)
             await self.db.close()
-        elif DB_CHOOSE == 'mysql':
-            self.db = MysqlControl()
-            await self.db.connect()
-            await self.db.update(USER_DB_INIT_SQL.replace("AUTOINCREMENT","AUTO_INCREMENT"))
+        # elif DB_CHOOSE == 'mysql':
+        #     self.db = MysqlControl()
+        #     await self.db.connect()
+        #     await self.db.update(USER_DB_INIT_SQL.replace("AUTOINCREMENT","AUTO_INCREMENT"))
         
         else:
             raise ValueError("数据库选择参数错误，填写 sqlite 或 mysql")
@@ -340,19 +340,19 @@ class WebDBControl():
         self.db = None
 
     async def init_db(self,mysql_pool:bool=False):
-        if mysql_pool:
+        if mysql_pool or DB_CHOOSE == 'mysql':
             self.db = MysqlPoolControl()
             await self.db.connect()
-            await self.db.update(USER_DB_INIT_SQL.replace("AUTOINCREMENT","AUTO_INCREMENT"))
+            await self.db.update(USER_DB_INIT_SQL.replace("AUTOINCREMENT","AUTO_INCREMENT"))    # 语法区别修补
         elif DB_CHOOSE == 'sqlite':
             self.db = SqliteControl()
             await self.db.set_path(self.SQLITE_PATH)
             await self.db.update(NOTICE_DB_INIT_SQL)
             await self.db.close()
-        elif DB_CHOOSE == 'mysql':
-            self.db = MysqlControl()
-            await self.db.connect()
-            await self.db.update(NOTICE_DB_INIT_SQL.replace("AUTOINCREMENT","AUTO_INCREMENT"))  # 语法区别修补
+        # elif DB_CHOOSE == 'mysql':
+        #     self.db = MysqlControl()
+        #     await self.db.connect()
+        #     await self.db.update(NOTICE_DB_INIT_SQL.replace("AUTOINCREMENT","AUTO_INCREMENT"))  
         
         else:
             raise ValueError("数据库选择参数错误，填写 sqlite 或 mysql")
