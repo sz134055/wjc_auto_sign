@@ -16,8 +16,8 @@ export default function RegPage(props) {
     const [nowLoading,setNowLoading] = useState(false);
     const [isModalOpen,setModalOpen] = useState(true);
     const [cancelTask,setCancelTask] = useState(false);
-    const [usersNum,setUsersNum] = useState(0);
-    const [adminAccount,setAdminAccount] = useState("未提供");
+    const [usersNum,setUsersNum] = useState("获取中");
+    const [adminAccount,setAdminAccount] = useState("获取中");
 
     async function checkAccount(){
       setNowLoading(true);
@@ -198,7 +198,7 @@ export default function RegPage(props) {
             <p style={{color:'red'}}>你的密码会明文存储，所以一定一定不要使用常用密码！</p>
             <p>当前站点搭建与管理员账号：<span style={{'font-weight':'bold'}}>{adminAccount}</span></p>
             <p style={{color:'red'}}>校芜优账户涉及到了你在校消费，若你担心账户安全，可下滑网页找到脚本开源地址，自行下载并搭建使用。</p>
-            <p>受限于学校服务器性能以及注册用户数量的问题，可能需要一定的时间才能帮你完成签到。当前总注册用户数：<span style={{'font-weight':'bold'}}>{usersNum}</span></p>
+            <p>受限于学校服务器性能以及注册用户数量，可能需要一定的时间才能帮你完成签到。当前总注册用户数：<span style={{'font-weight':'bold'}}>{usersNum}</span></p>
           </Typography>
         </Modal>
       </>
