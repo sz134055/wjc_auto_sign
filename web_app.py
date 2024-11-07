@@ -66,8 +66,12 @@ async def check_account(account:str=Form(),pswd:str=Form(),email:str=Form()):
     await eDB.init_db()
 
     if(await eDB.check_user(account,pswd) or await wjcAccountSignTest(account,pswd)):
-        if eDB.is_vcode_sent(account):
-           return JSONResponse(content={'code':'fail','msg':'邮箱验证码已发送，请检查你的邮箱'}) 
+        last_sent_email = await eDB.is_vcode_sent(account)
+        if last_sent_email:
+            if last_sent_email == email:
+                return JSONResponse(content={'code':'ok','msg':'验证码已发送过，请检查你的邮箱'})
+            else:
+                return JSONResponse(content={'code':'fail','msg':f'验证码已发送至 {last_sent_email}，请检测你邮箱是否填写正确，如要更换邮箱请等待10分钟后再试'})
         emailVCode = await eDB.updata_user(account,pswd,email)
         logger.info(f'用户 {account} 尝试注册，邮箱验证码将发送至 {email}')
         res = await user_mail('自动签到注册邮箱验证码',f'你的验证码为(10分钟内有效)：{emailVCode}',email)
@@ -76,6 +80,7 @@ async def check_account(account:str=Form(),pswd:str=Form(),email:str=Form()):
             return JSONResponse(content={'code':'ok','msg':'验证码发送成功，请检查你的邮箱'})
         else:
             logger.error(f'验证码发送至{email} 失败')
+            await eDB.updata_user(account,pswd,"")  # 置空邮箱信息
             return JSONResponse(content={'code':'fail','msg':'邮箱不存在或格式错误'})
     else:
         return JSONResponse(content={'code':'fail','msg':'账号或密码错误'})

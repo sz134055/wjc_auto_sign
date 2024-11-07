@@ -101,11 +101,16 @@ class RegControl:
                 'isPass':res[5]
             }
         
-    async def is_vcode_sent(self,account) -> bool:
+    async def is_vcode_sent(self,account) -> str:
+        """
+        检测邮箱验证码是否成功发送
+
+        :return: str 发送过且未过期则响应发送至的邮箱
+        """
         db = await aiosqlite.connect(self.DB_PATH)
-        cursor = await db.execute("SELECT emailVCodeTime FROM regInfo WHERE account=?",(account,))
+        cursor = await db.execute("SELECT emailVCodeTime,email FROM regInfo WHERE account=?",(account,))
         res = await cursor.fetchone()
         if res and ((int(tTime()) - int(res[0])) <= 60*10):
-            return False
+            return res[1]
         else:
-            return True
+            return ""
