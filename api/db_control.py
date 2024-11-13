@@ -36,18 +36,28 @@ class DBControlBase:
             self.coon = None
 
 class MysqlControl(DBControlBase):
+    RE_CONNECT_TIMES = 0
+
     def __init__(self):
         super().__init__()
         self.cur = None
     async def connect(self):
-        self.coon = await aiomysql.connect(
-            host=MYSQL_SET['host'],
-            port=int(MYSQL_SET['port']), 
-            user=MYSQL_SET['account'], 
-            password=MYSQL_SET['pswd'], 
-            charset='utf8mb4',
-            cursorclass= aiomysql.cursors.DictCursor
-        )
+        try:
+            self.coon = await aiomysql.connect(
+                host=MYSQL_SET['host'],
+                port=int(MYSQL_SET['port']), 
+                user=MYSQL_SET['account'], 
+                password=MYSQL_SET['pswd'], 
+                charset='utf8mb4',
+                cursorclass= aiomysql.cursors.DictCursor
+            )
+        except Exception as e:
+            self.RE_CONNECT_TIMES += 1
+            if(self.RE_CONNECT_TIMES <= 3):
+                logger.error(f'Mysql连接失败，尝试第{self.RE_CONNECT_TIMES}次重连 ',e)
+                await self.connect()
+            else:
+                raise e
         self.cur = await self.coon.cursor()
         await self.execute(MYSQL_INIT_SQL)
         await self.coon.select_db(MYSQL_SET['db_name'])
@@ -115,21 +125,31 @@ class SqliteControl(DBControlBase):
 
 
 class MysqlPoolControl(DBControlBase):
+    RE_CONNECT_TIMES = 0
     def __init__(self):
         super().__init__()
         self.pool = None
+        
 
     async def connect(self):
-        self.pool = await aiomysql.create_pool(
-            host=MYSQL_SET['host'],
-            port=int(MYSQL_SET['port']), 
-            user=MYSQL_SET['account'], 
-            password=MYSQL_SET['pswd'], 
-            charset='utf8mb4',
-            minsize=5,
-            maxsize=AYN_MAX_USERS,
-            cursorclass= aiomysql.cursors.DictCursor
-        )
+        try:
+            self.pool = await aiomysql.create_pool(
+                host=MYSQL_SET['host'],
+                port=int(MYSQL_SET['port']), 
+                user=MYSQL_SET['account'], 
+                password=MYSQL_SET['pswd'], 
+                charset='utf8mb4',
+                minsize=5,
+                maxsize=AYN_MAX_USERS,
+                cursorclass= aiomysql.cursors.DictCursor
+            )
+        except Exception as e:
+            self.RE_CONNECT_TIMES += 1
+            if(self.RE_CONNECT_TIMES <= 3):
+                logger.error(f'Mysql连接失败，尝试第{self.RE_CONNECT_TIMES}次重连 ',e)
+                await self.connect()
+            else:
+                raise e
 
     async def getCurosr(self):
         conn = await self.pool.acquire()
