@@ -44,7 +44,11 @@ export default function RegPage(props) {
                     pswd:val.pswd,
                     email:val.email
                   });
-                  setStep(1);
+                  if(res.data.info && res.data.info.update){
+                    setStep(2);
+                  }else{
+                    setStep(1);
+                  }
                 }else{
                   message.error(res.data.msg);
                 }
