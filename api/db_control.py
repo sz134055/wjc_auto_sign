@@ -305,6 +305,11 @@ class UserDBControl():
         return {'code':'ok','msg':f"更新用户{account}签到状态成功"}
     
 
+    async def get_user_info(self, account:str) -> dict:
+        db = self.db
+        user_info = await db.query_one(f"SELECT * FROM {TABLE_SET['user']} WHERE account = %s", (account,))
+        return user_info
+
     async def get_users_info(self) -> dict:
         db = self.db
         users_info = await db.query(f"SELECT * FROM {TABLE_SET['user']}")
