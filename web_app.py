@@ -66,14 +66,26 @@ async def check_account(account:str=Form(),pswd:str=Form(),email:str=Form()):
     await eDB.init_db()
 
     if(await eDB.check_user(account,pswd) or await wjcAccountSignTest(account,pswd)):
-        last_sent_email = await eDB.is_vcode_sent(account)
-        if last_sent_email:
-            if last_sent_email == email:
-                return JSONResponse(content={'code':'ok','msg':'验证码已发送过，请检查你的邮箱'})
-            else:
-                return JSONResponse(content={'code':'fail','msg':f'验证码已发送至 {last_sent_email}，请检测你邮箱是否填写正确，如要更换邮箱请等待10分钟后再试'})
+        emailVCode = None
+        
+        DB = await getUserDBControl()
+        user_info = await DB.get_user_info(account)
+        if user_info and user_info['email'] == email:
+            # 跳过验证码
+            DB.quit()
+            await eDB.updata_user(account,pswd,email)
+            await eDB.set_user_pass(account)
+            return JSONResponse(content={'code':'ok','msg':'邮箱未改变，无需验证','info':{'update':True}})
+        elif not await eDB.is_user_pass(account):
+            last_sent_email = await eDB.is_vcode_sent(account)
+            if last_sent_email:
+                if last_sent_email == email:
+                    return JSONResponse(content={'code':'ok','msg':'验证码已发送过，请检查你的邮箱'})
+                else:
+                    return JSONResponse(content={'code':'fail','msg':f'验证码已发送至 {last_sent_email}，请检测你邮箱是否填写正确，如要更换邮箱请等待10分钟后再试'})
+        
         emailVCode = await eDB.updata_user(account,pswd,email)
-        logger.info(f'用户 {account} 尝试注册，邮箱验证码将发送至 {email}')
+        logger.info(f'用户 {account} 尝试注册或更新邮箱，邮箱验证码将发送至 {email}')
         res = await user_mail('自动签到注册邮箱验证码',f'你的验证码为(10分钟内有效)：{emailVCode}',email)
         if(res):
             logger.info(f'验证码发送至{email}')
@@ -83,7 +95,7 @@ async def check_account(account:str=Form(),pswd:str=Form(),email:str=Form()):
             await eDB.updata_user(account,pswd,"")  # 置空邮箱信息
             return JSONResponse(content={'code':'fail','msg':'邮箱不存在或格式错误'})
     else:
-        return JSONResponse(content={'code':'fail','msg':'账号或密码错误'})
+        return JSONResponse(content={'code':'fail','msg':'账号或密码错误，如果你确定账号密码无误，请过段时间再重试'})
 
 @app.post('/stopAccount')
 async def cancel_reg(account:str=Form(),pswd:str=Form()):

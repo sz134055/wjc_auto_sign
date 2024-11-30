@@ -56,7 +56,14 @@ class RegControl:
             await db.commit()
             await db.close()
             return True
-        
+
+    async def set_user_pass(self,account):
+        # 设置用户状态为通过验证，即免验证
+        db = await aiosqlite.connect(self.DB_PATH)
+        await db.execute("UPDATE regInfo SET isPass=1 WHERE account=?",(account,))
+        await db.commit()
+        await db.close()
+
     async def is_user_pass(self,account) -> bool:
         db = await aiosqlite.connect(self.DB_PATH)
         cursor = await db.execute("SELECT * FROM regInfo WHERE account=?",(account,))
