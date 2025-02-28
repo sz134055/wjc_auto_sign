@@ -29,7 +29,7 @@
 
 <script setup>
 import { ref, watch, nextTick,defineEmits,onMounted } from 'vue'
-
+import axios from 'axios'
 const emit = defineEmits(['complete'])
 const codes = ref(Array(6).fill(''))
 const inputRefs = ref([])
