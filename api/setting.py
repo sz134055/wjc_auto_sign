@@ -45,6 +45,15 @@ MAIL_SET = {
 ADMIN_ACCOUNT = MAIL_SET['admin'] if MAIL_SET['admin'] else "未设置"
 
 ADDRESS_NAME = __cf.get("signInfo","address_name")
+ADDRESS_COORD = {
+    'lgt': __cf.get("signInfo","longitude"),
+    'lat': __cf.get("signInfo","latitude")
+}
+
+AMAP_SET = {
+    'key': __cf.get("AMAP","key"),
+    'code': __cf.get("AMAP","code")
+}
 
 TIME_CHCECK_WAIT = int(__cf.get("timeSet","check_wait"))
 TIME_SLEEP_WAIT = int(__cf.get("timeSet","sleep_wait"))
