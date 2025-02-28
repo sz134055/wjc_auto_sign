@@ -2,7 +2,7 @@ from api.core import WJC
 from api.setting import TIME_SET, SIGN_MAX_TRY_TIMES,TIME_SLEEP_WAIT,AYN_MAX_USERS
 from queue import Queue
 from datetime import datetime,time,date,timedelta
-from api.db_control import getUserDBControl
+from api.db_control import getUserDBControl, getUserLogDBControl
 from api import mail_control
 import asyncio
 from api.log_setting import logger
@@ -13,6 +13,7 @@ class AutoSign:
         self.q_user = Queue()
         self.q_fail_user = Queue()
         self.user_db = None
+        self.user_log_db = None
         self.__semaphore = asyncio.Semaphore(AYN_MAX_USERS)     # 瞬时签到人数限制
 
     async def __error_msg_gen(self,content:str) -> str:
@@ -24,14 +25,14 @@ class AutoSign:
                 return __info[1]
         return '未知错误'
 
-    async def sign(self,account, pswd,coordinate,email,fail_try:bool=False):
+    async def sign(self,account, pswd,coordinate,position,distance,email,fail_try:bool=False):
         # 瞬时签到人数限制
         self.__semaphore.acquire()
-        await self._sign(account, pswd,coordinate,email,fail_try)
+        await self._sign(account, pswd,coordinate,email,position,distance,fail_try)
         self.__semaphore.release()
 
     @logger.catch
-    async def _sign(self,account, pswd,coordinate,email,fail_try:bool=False):
+    async def _sign(self,account, pswd,coordinate,email,position,distance,fail_try:bool=False):
         wjc = WJC(account, pswd)
         db = self.user_db
         info = {'code':'fail','msg':'未能签到'}
@@ -46,7 +47,7 @@ class AutoSign:
                 raise Exception
             # 对已签到的用户将不会再进行签到
             if not info['info']['aaData'][0]['QDSJ']:
-                info = await wjc.sign(coordinate,info['info']['aaData'][0]['DM'],info['info']['aaData'][0]['SJDM'])
+                info = await wjc.sign(coordinate,info['info']['aaData'][0]['DM'],info['info']['aaData'][0]['SJDM'],position,distance)
             else:
                 info = {'code':'ok','msg':f'[{account}]已存在签到记录，将不会签到'}
                 logger.info(info['msg'])
@@ -58,6 +59,15 @@ class AutoSign:
                 # await mail_control.user_mail('签到成功',mail_content,email)
                 
                 await db.user_sign(account)
+                await self.user_log_db.add_log(
+                    {
+                        'account':account,
+                        'email':email,
+                        'coordinate':coordinate,
+                        'position':position,
+                    },
+                    "",True
+                )
             else:
                 raise Exception
         except Exception as e:
@@ -72,6 +82,15 @@ class AutoSign:
                     'times_try':1
                 })
             await db.user_try_add(account)
+            await self.user_log_db.add_log(
+                {
+                    'account':account,
+                    'email':email,
+                    'coordinate':coordinate,
+                    'position':position,
+                },
+                "",False
+            )
         return info 
 
     async def __sign_task_queue(self) -> None:
@@ -95,7 +114,7 @@ class AutoSign:
         task_list = []
         while not self.q_user.empty():
             user = self.q_user.get()
-            task_list.append(asyncio.create_task(self.sign(user['account'],user['pswd'],user['coordinate'],user['email'])))
+            task_list.append(asyncio.create_task(self.sign(user['account'],user['pswd'],user['coordinate'],user['position'],user['distance'],user['email'])))
             self.q_user.task_done()
         res = await asyncio.gather(*task_list)
         return res
@@ -113,7 +132,7 @@ class AutoSign:
             while user['times_try'] < SIGN_MAX_TRY_TIMES:
                 # 只会在此重试SIGN_MAX_TRY_TIMES-1次
                 logger.info(f"[{user['account']}]第 {user['times_try']+1} 次重试开始")
-                info = await self._sign(user['account'],user['pswd'],user['coordinate'],user['email'],fail_try=True)
+                info = await self._sign(user['account'],user['pswd'],user['coordinate'],user['email'],user['position'],user['distance'],fail_try=True)
                 if info['code'] == 'ok':
                     # 签到成功的用户将不会被放到失败通知队列
                     break
@@ -156,6 +175,7 @@ class AutoSign:
                 if start_time <= current_time <= end_time:
                     # 仅在开始签到时连接数据库，并在完成签到后退出，防止因长时间等待导致数据库断连引发后续问题
                     self.user_db = await getUserDBControl(mysql_pool=True)
+                    self.user_db_log = await getUserLogDBControl()
                     logger.info('签到开始')
                     job_start_time = time_t()    # 耗时计时器起点
                     await self.sign_task_create()
@@ -175,9 +195,13 @@ class AutoSign:
                         })
                     mail_content = await mail_control.admin_mail_gen(info)
                     await mail_control.admin_mail('签到状态', mail_content)
+                    # 退出数据库
                     if self.user_db:
-                        await self.user_db.quit()   # 退出数据库
+                        await self.user_db.quit()  
                         self.user_db = None
+                    if self.user_db_log:
+                        await self.user_db_log.quit()
+                        self.user_db_log = None
                     break
                 else:
                     TIME_CHCECK_WAIT = int(datetime.combine(date.today(),start_time).timestamp()-now.timestamp())
