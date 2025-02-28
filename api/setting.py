@@ -8,7 +8,7 @@ __cf = ConfigParser()
 __cf.read(os_path.join(CURRENT_PATH,SETTING_FILE_PATH),encoding="utf-8")
 
 # DB
-DB_CHOOSE = __cf.get("db","choose")
+DB_CHOOSE = "mysql"
 TABLE_SET = {
     'user':__cf.get("db","user_table"),
     'web': __cf.get("db","web_table")
@@ -69,7 +69,8 @@ USER_DB_INIT_SQL = f'''
         success INTEGER DEFAULT 0,
         total INTEGER DEFAULT 0,
         active INTEGER DEFAULT 1,
-        failDays INTEGER DEFAULT 0
+        failDays INTEGER DEFAULT 0,
+        position TEXT NOT NULL
     );
 '''
 NOTICE_DB_INIT_SQL = f'''

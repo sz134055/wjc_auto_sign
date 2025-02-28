@@ -246,7 +246,7 @@ class UserDBControl():
             logger.info(f"更新用户{account}信息失败[账号或邮箱不存在 {email}]")
             return {'code':'fail','msg':f"更新用户{account}信息失败[账号或邮箱不存在 {email}]"}
 
-    async def add_user(self, account:str, pswd:str, email:str, coordinate:str):
+    async def add_user(self, account:str, pswd:str, email:str, coordinate:str,position:str):
         db = self.db
         account_res = await db.query_one(f"SELECT * FROM {TABLE_SET['user']} WHERE account = %s", (account,))
         email_res = await db.query_one(f"SELECT * FROM {TABLE_SET['user']} WHERE email = %s", (email,))
@@ -254,7 +254,7 @@ class UserDBControl():
             await self.update_user(account, pswd, email, coordinate)
             logger.info(f"添加或更新用户{account} 添加成功")
         else:
-            await db.update(f"INSERT INTO {TABLE_SET['user']} (account,pswd,email,coordinate,updateTime,signTime,success,total,active) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)", (account, pswd, email, coordinate, getTime(), '0', 0, 0,1))
+            await db.update(f"INSERT INTO {TABLE_SET['user']} (account,pswd,email,coordinate,updateTime,signTime,success,total,active,position) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", (account, pswd, email, coordinate, getTime(), '0', 0, 0,1,position))
             logger.info(f"添加或更新用户{account} 添加成功")
             return {'code':'ok','msg':'新用户{account} 添加成功'}
     
