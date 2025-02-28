@@ -368,7 +368,7 @@ class WebDBControl():
         if mysql_pool or DB_CHOOSE == 'mysql':
             self.db = MysqlPoolControl()
             await self.db.connect()
-            await self.db.update(USER_DB_INIT_SQL.replace("AUTOINCREMENT","AUTO_INCREMENT"))    # 语法区别修补
+            await self.db.update(NOTICE_DB_INIT_SQL.replace("AUTOINCREMENT","AUTO_INCREMENT"))    # 语法区别修补
         elif DB_CHOOSE == 'sqlite':
             self.db = SqliteControl()
             await self.db.set_path(self.SQLITE_PATH)
@@ -407,7 +407,7 @@ class WebDBControl():
 class UserLogDBControl():
     def __init__(self):
         self.db = None
-        self.table_name = f'{TABLE_SET['user']}_log'
+        self.table_name = f"{TABLE_SET['user']}_log"
 
     async def init_db(self):
         self.db = MysqlPoolControl()

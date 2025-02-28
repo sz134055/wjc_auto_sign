@@ -15,8 +15,8 @@ TABLE_SET = {
 }
 # SQLITE
 SQLITE_SET = {
-    'user_db_path':__cf.get("sqlite","user_db_path"),
-    'web_db_path':__cf.get("sqlite","web_db_path")
+    'user_db_path':'',
+    'web_db_path':''
 }
 # MYSQL
 MYSQL_SET = {

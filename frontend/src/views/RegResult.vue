@@ -35,6 +35,9 @@ const specBtnClick = function(){
 const capComplete = function(res){
     setTimeout(()=>{
         isEmailPass.value = true
+        setTimeout(()=>{
+            router.push('/guide')
+        },6500)
     },1500)
 }
 

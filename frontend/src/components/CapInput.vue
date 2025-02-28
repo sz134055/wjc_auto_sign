@@ -29,6 +29,7 @@
 
 <script setup>
 import { ref, watch, nextTick,defineEmits,onMounted } from 'vue'
+import userStore from '../store'
 import axios from 'axios'
 const emit = defineEmits(['complete'])
 const codes = ref(Array(6).fill(''))
@@ -37,6 +38,7 @@ const activeIndex = ref(0)
 const tip = ref('一封包含验证码的邮件已发送至你的邮箱，请填写验证码')
 const isCapPass = ref(null)
 const isDisabled = ref(false)
+const user = userStore()
 
 const handlePaste = (e) => {
     const pasteData = e.clipboardData.getData('text').replace(/\D/g, '')
@@ -47,7 +49,7 @@ const handlePaste = (e) => {
 const checkCap =async (cap) => {
     try{
         const response = await axios.post('/emailCheck', {
-        account: account.value,
+        account: user.account,
         emailVCode: cap
         }, {
         headers: {

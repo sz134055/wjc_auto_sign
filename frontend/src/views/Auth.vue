@@ -16,20 +16,20 @@
             <input class="global-input" type="password" placeholder="校芜优密码" v-model="pswd"/>
         </div>
         <button class="global-btn" @click="handleRegister">注册</button>
-        <a @click="isReg = !isReg">我已有账号</a>
+        <a @click="isReg = !isReg">已在此网站注册过？</a>
     </div>
     <div class="auth-box" v-show="!isReg && !isLoading">
         <div class="global-title-large">登录</div>
         <div class="form-input-item">
-            <el-icon class="global-icon"><Message /></el-icon>
-            <input class="global-input" type="text" placeholder="邮箱或校芜优账号" v-model="email"/>
+            <el-icon class="global-icon"><User /></el-icon>
+            <input class="global-input" type="text" placeholder="校芜优账号" v-model="account"/>
         </div>
         <div class="form-input-item">
             <el-icon class="global-icon"><Lock /></el-icon>
             <input class="global-input" type="password" placeholder="校芜优密码" v-model="pswd"/>
         </div>
         <button class="global-btn" @click="handleLogin">登录</button>
-        <a @click="isReg = !isReg">我还没有账号</a>
+        <a @click="isReg = !isReg">还没有在此网站注册过？</a>
     </div>
   </div>
 </template>
@@ -40,12 +40,15 @@ import LoadingPage from '../components/LoadingPage.vue';
 import {User,Message,Lock} from '@element-plus/icons-vue'
 import axios from 'axios';
 import userStore from '../store'
+import { useRouter } from 'vue-router';
+
 const isReg = ref(true)
 const isLoading = ref(false)
 const email = ref()
 const pswd = ref()
 const account = ref()
 const user = userStore()
+const router = useRouter()
 const handleRegister = async () => {
   // 验证输入
   if (!email.value || !account.value || !pswd.value) {
@@ -66,15 +69,14 @@ const handleRegister = async () => {
     })
 
     if (response.data.code === 'ok') {
-      ElMessage.success('注册成功')
-      user.setEmail(email.value)
-      user.setAccount(account.value)
+      ElMessage.success('账号检测成功')
+      user.setLogin(email.value,account.value)
       router.push('/result')
     } else {
-      ElMessage.error(response.data.msg || '注册失败')
+      ElMessage.error(response.data.msg || '账号检测失败')
     }
   } catch (error) {
-    console.error('注册请求失败:', error)
+    console.error('账号检测请求失败:', error)
     ElMessage.error(error.response?.data?.msg || '网络请求异常')
   } finally {
     isLoading.value = false

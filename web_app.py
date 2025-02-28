@@ -19,7 +19,7 @@ NOW_FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 #logger = logger_set('web')
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="web_app/build/static"), name="static")
+app.mount("/assets", StaticFiles(directory="frontend/dist/assets"), name="assets")
 
 eDB = RegControl()
 
@@ -47,13 +47,13 @@ async def is_db_locked() -> bool:
 
 @app.get('/',response_class=HTMLResponse)
 async def index():
-    async with aiofiles.open(Path(NOW_FILE_PATH+"/web_app/build/index.html"),encoding='utf-8') as f:
+    async with aiofiles.open(Path(NOW_FILE_PATH+"/frontend/dist/index.html"),encoding='utf-8') as f:
         return HTMLResponse(await f.read(),status_code=200)
 
 
 @app.get('/favicon.ico')
 async def get_favicon():
-    async with aiofiles.open(Path(NOW_FILE_PATH+"/web_app/build/favicon.ico"),'rb') as f:
+    async with aiofiles.open(Path(NOW_FILE_PATH+"/frontend/dist/favicon.ico"),'rb') as f:
         return Response(await f.read(),media_type='image/x-icon')
 
 @app.post('/checkAccount')

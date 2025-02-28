@@ -1,44 +1,37 @@
 import { defineStore } from 'pinia'
 
 const userStore = defineStore('user', {
-  state: () => {
-    return {
-      email: '',
-      account: '',
-      loginTime: 0,
-      isLogin: false,
-    }
-  },
+  state: () => ({
+    email: '',
+    account: '',
+    loginTime: 0,
+    isLogin: false,
+  }
+  ),
   getters: {
     getEmail: (state) => state.email,
     getAccount: (state) => state.account,
     getLoginTime: (state) => state.loginTime,
     getIsLogin: (state) => {
-      const nowTime = Date.now()
-      if (nowTime - state.loginTime > 1000 * 60 * 60) {
-        state.isLogin = false
-      } else {
-        state.isLogin = true
-      }
-      return state.isLogin
-    },
+      return Date.now() - state.loginTime <= 1000 * 60 * 60
+    }
   },
   actions: {
-    setEmail: (value) => {
+    setEmail(value) { // ✅ 使用常规函数
       this.email = value
     },
-    setAccount: (value) => {
+    setAccount(value) {
       this.account = value
     },
-    setLoginTime: () => {
+    setLoginTime() {
       this.loginTime = Date.now()
     },
-    setLogin: (email, account) => {
+    setLogin(email, account) {
       this.email = email
       this.account = account
       this.loginTime = Date.now()
       this.isLogin = true
-    },
+    }
   },
 })
 
