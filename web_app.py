@@ -134,7 +134,7 @@ async def emailCheck(account:str=Form(),emailVCode:str=Form()):
 
 
 @app.post('/submit')
-async def submit(account:str=Form(),coordinate:str=Form()):
+async def submit(account:str=Form(),coordinate:str=Form(),position:str=Form()):
     global eDB
     if(await is_db_locked()):
         return JSONResponse({'code':'fail','msg':f'当前时间段 ({TIME_SET["start"]} - {TIME_SET["end"]}) 无法注册，请在非此时间段再重试'})
@@ -144,14 +144,33 @@ async def submit(account:str=Form(),coordinate:str=Form()):
     if await eDB.is_user_pass(account):
         user_info = await eDB.finish_reg(account)
         DB = await getUserDBControl()
-        await DB.add_user(account,user_info['pswd'],user_info['email'],coordinate)
+        await DB.add_user(account,user_info['pswd'],user_info['email'],coordinate,position)
         await DB.quit()
-        await user_mail('自动签到注册成功',await reg_mail_gen({'account':account,'email':user_info['email'],'coordinate':coordinate}),user_info['email'])
+        await user_mail('自动签到注册成功',await reg_mail_gen({'account':account,'email':user_info['email'],'coordinate':coordinate,'position':position}),user_info['email'])
         logger.info(f'用户 {account} 注册成功')
         return JSONResponse(content={'code':'ok','msg':'注册成功'})
     else:
         logger.error(f'用户 {account} 注册失败，未通过验证')
         return JSONResponse(content={'code':'fail','msg':'当前账号未通过验证'})
+
+@app.post('/login')
+async def login(account:str=Form(),pswd:str=Form()):
+    DB = await getUserDBControl()
+    user_info = await DB.get_user_info(account)
+    if user_info and pswd == user_info['pswd']:
+        return JSONResponse(
+            content={
+                'code':'ok',
+                'msg':'登录成功',
+                'info':{
+                    'account':user_info['account'],
+                    'email':user_info['email']
+                }
+            }
+        )
+    else:
+        return JSONResponse(content={'code':'fail','msg':'账号或密码错误'})
+
 
 @app.get('/getSiteInfo')
 async def get_site_info():
@@ -203,6 +222,15 @@ async def noticePush(api_token:str=Form(),title:str=Form(),content:str=Form(),ti
     await DB.quit()
     logger.info(f'推送提醒：{title}[{time}] \n {content}')
     return JSONResponse(content={'code':'ok','msg':'推送成功'})
+
+
+@app.get('/checkAlive')
+async def checkAlive():
+    """ 响应一些信息给前端 """
+    DB = await getUserDBControl()
+    nums = await DB.get_users_num()
+    await DB.quit()
+    return JSONResponse(content={'code':'ok','msg':'成功获取站点信息','info':{'admin':ADMIN_ACCOUNT,'nums':nums}})
 
 
 if __name__ == '__main__':
