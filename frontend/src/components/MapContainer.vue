@@ -10,6 +10,8 @@
 import { onMounted, onUnmounted, ref, defineEmits, watch } from 'vue'
 import AMapLoader from '@amap/amap-jsapi-loader'
 import LoadingPage from './LoadingPage.vue'
+import { ElMessage } from 'element-plus'
+import axios from 'axios'
 
 const isLoading = ref(true)
 const emit = defineEmits(['coordinates-update'])
@@ -18,6 +20,8 @@ const currentLng = ref(null)
 const currentLat = ref(null)
 const currentName = ref(null)
 const activeMarker = ref(null)
+const currentDistance = ref(0)
+const AMAP_INFO = ref({})
 // 添加地理编码器引用
 const geocoder = ref(null)
 // 增加定位完成状态
@@ -25,11 +29,17 @@ const isLocated = ref(false)
 
 
 const getAMapInfo = () => ({
-    key: "980b929874b97995c3f388dd513df211",
-    code: "8cd4e18a2645a9f6dc890f7f7eeae83e",
-    longitude: 118.265303,
-    latitude: 31.359218
+    key: AMAP_INFO.value.key,
+    code: AMAP_INFO.value.code,
+    longitude: AMAP_INFO.value.longitude,
+    latitude: AMAP_INFO.value.latitude
 })
+
+const isValidCoordinate = (lng, lat) => {
+    return !isNaN(lng) && !isNaN(lat) &&
+        lng >= -180 && lng <= 180 &&
+        lat >= -90 && lat <= 90
+}
 
 // 添加地址解析方法
 const getLocationName = async (lnglat) => {
@@ -45,21 +55,47 @@ const getLocationName = async (lnglat) => {
 }
 
 
+//距离计算方法
+const calculateDistance = (lng2, lat2) => {
+    try {
+        const { longitude: lng1, latitude: lat1 } = getAMapInfo()
 
-// 暴露坐标获取方法
-const getCurrentCoordinates = () => ({
-    lng: currentLng.value,
-    lat: currentLat.value,
-    name: currentName.value
-})
+        // 将十进制度数转为弧度
+        const rad = (angle) => angle * Math.PI / 180
+        const R = 6371e3 // 地球半径（米）
+
+        // 差值计算
+        const Δφ = rad(lat2 - lat1)
+        const Δλ = rad(lng2 - lng1)
+
+        // Haversine公式
+        const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(rad(lat1)) * Math.cos(rad(lat2)) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+        // 计算结果（米）
+        return Math.round(R * c)
+    } catch (error) {
+        console.error('距离计算失败:', error)
+        return 0
+    }
+}
 
 // 更新坐标并触发事件
 const updateCoordinates = async (lng, lat, name = "") => {
+    if (!isValidCoordinate(lng, lat)) {
+        console.error('无效坐标:', lng, lat)
+        return
+    }
+
     const formattedLng = Number(lng.toFixed(6))
     const formattedLat = Number(lat.toFixed(6))
 
     currentLng.value = formattedLng
     currentLat.value = formattedLat
+    currentName.value = name
+    currentDistance.value = calculateDistance(formattedLng, formattedLat) // 更新距离
 
     // 确保名称获取的异常处理
     try {
@@ -67,14 +103,16 @@ const updateCoordinates = async (lng, lat, name = "") => {
         emit('coordinates-update', {
             lng: formattedLng,
             lat: formattedLat,
-            name: locationName
+            name: locationName,
+            distance: currentDistance.value
         })
     } catch (e) {
         console.error('地址解析失败:', e)
         emit('coordinates-update', {
             lng: formattedLng,
             lat: formattedLat,
-            name: '位置解析失败'
+            name: '位置解析失败',
+            distance: currentDistance.value
         })
     }
 }
@@ -148,7 +186,7 @@ watch([currentLng, currentLat], ([newLng, newLat]) => {
     }
 })
 
-onMounted(() => {
+const initAMap = () => {
     const AMapInfo = getAMapInfo()
     window._AMapSecurityConfig = { securityJsCode: AMapInfo.code }
 
@@ -177,6 +215,27 @@ onMounted(() => {
     }).finally(() => {
         isLoading.value = false
     })
+}
+
+onMounted(() => {
+    isLoading.value = true
+
+    axios.get('/getAmap')
+        .then((response) => {
+            if (response.data.code === 'ok') {
+                AMAP_INFO.value = response.data.info
+                initAMap()
+            } else {
+                ElMessage.error('获取地图信息失败')
+            }
+        })
+        .catch((error) => {
+            console.error('获取地图信息失败:', error)
+            ElMessage.error('获取地图信息失败')
+        })
+        .finally(() => {
+            isLoading.value = false
+        })
 })
 
 onUnmounted(() => {
@@ -187,7 +246,6 @@ onUnmounted(() => {
 })
 
 defineExpose({
-    getCurrentCoordinates,
     updateCoordinates
 })
 </script>

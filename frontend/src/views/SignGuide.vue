@@ -1,40 +1,24 @@
 <template>
     <div class="main-page">
         <div class="title-box">
-            <el-icon class="global-icon guide-icon"><LocationInformation /></el-icon>
+            <el-icon class="global-icon guide-icon">
+                <LocationInformation />
+            </el-icon>
             <span class="global-title-large">设置签到位置</span>
         </div>
         <div class="coordinates-box">
             <div class="setter-input">
                 <div class="setter-input-item">
                     <span>位置</span>
-                    <input 
-                        class="global-input" 
-                        type="text"
-                        step="any"
-                        placeholder="位置名"
-                        v-model="currentName"
-                    >
+                    <input class="global-input" type="text" step="any" placeholder="位置名" v-model="currentName">
                 </div>
                 <div class="setter-input-item">
                     <span>经度</span>
-                    <input 
-                        class="global-input" 
-                        type="number"
-                        step="any"
-                        placeholder="经度"
-                        v-model.number="currentLng"
-                    >
+                    <input class="global-input" type="number" step="any" placeholder="经度" v-model.number="currentLng">
                 </div>
                 <div class="setter-input-item">
                     <span>纬度</span>
-                    <input 
-                        class="global-input" 
-                        type="number"
-                        step="any"
-                        placeholder="纬度"
-                        v-model.number="currentLat"
-                    >
+                    <input class="global-input" type="number" step="any" placeholder="纬度" v-model.number="currentLat">
                 </div>
             </div>
             <div class="btn-box">
@@ -44,12 +28,8 @@
             <span>如需重新定位到你当前位置请刷新页面</span>
         </div>
 
-        <MapContainer 
-            class="map-box" 
-            ref="mapRef" 
-            @coordinates-update="handleCoordinatesUpdate"
-        />
-       <FooterBar />
+        <MapContainer class="map-box" ref="mapRef" @coordinates-update="handleCoordinatesUpdate" />
+        <FooterBar />
     </div>
 </template>
 
@@ -68,71 +48,77 @@ import { useRouter } from 'vue-router'
 const currentLng = ref(null)
 const currentLat = ref(null)
 const currentName = ref(null)
+const currentDistance = ref(0)
 const mapRef = ref()
 const user = userStore()
 const router = useRouter()
 
 const goToSchool = () => {
-  mapRef.value?.updateCoordinates(118.265303, 31.359218)
+    mapRef.value?.updateCoordinates(118.265303, 31.359218)
 }
 
 // 处理坐标更新事件
-const handleCoordinatesUpdate = ({ lng, lat, name }) => {
-  currentLng.value = lng
-  currentLat.value = lat
-  currentName.value = name
+const handleCoordinatesUpdate = ({ lng, lat, name, distance }) => {
+    currentLng.value = lng
+    currentLat.value = lat
+    currentName.value = name
+    currentDistance.value = distance
 }
 
 // 坐标验证方法
 const validateCoordinate = (value) => {
-  return typeof value === 'number' && 
-         value >= -180 && value <= 180 &&
-         !isNaN(value)
+    return typeof value === 'number' &&
+        value >= -180 && value <= 180 &&
+        !isNaN(value)
 }
 
 // 输入框变化监听
 watch([currentLng, currentLat], ([newLng, newLat]) => {
-  if (validateCoordinate(newLng) && validateCoordinate(newLat)) {
-    mapRef.value?.updateCoordinates(newLng, newLat)
-  }
+    if (validateCoordinate(newLng) && validateCoordinate(newLat)) {
+        mapRef.value?.updateCoordinates(newLng, newLat)
+    }
 })
 
 // 确认坐标提交
-const confirmCoordinates = async() => {
-  const { lng, lat,name } = mapRef.value.getCurrentCoordinates()
-  
-  if (!validateCoordinate(lng) || !validateCoordinate(lat)) {
-    alert('请先在地图上选择有效位置')
-    return
-  }
-  
-  try {
-    const response = await axios.post(
-        '/submit',
-        {
-            account:user.getAccount,
-            coordinate: `${lng},${lat}`,
-            position: name
-        },{
+const confirmCoordinates = async () => {
+    const lng = currentLng.value
+    const lat = currentLat.value
+    const name = currentName.value
+    const distance = currentDistance.value
+
+    if (!validateCoordinate(lng) || !validateCoordinate(lat)) {
+        alert('请先在地图上选择有效位置')
+        return
+    }
+    console.log([lng, lat, name, distance].join(','))
+    try {
+        const response = await axios.post(
+            '/submit',
+            {
+                account: user.getAccount,
+                coordinate: `${lng},${lat}`,
+                position: name,
+                distance: distance
+            }, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
         }
-    )
+        )
 
-    if (response.data.code === 'ok') {
-        ElMessage.success('设置位置成功！')
-        setTimeout(()=>{
-            router.push('/profile')
-        },2000)
-        
-    } else {
-        ElMessage.error(response.data.msg || '设置位置失败')
+        if (response.data.code === 'ok') {
+            ElMessage.success('设置位置成功！')
+            setTimeout(() => {
+                router.push('/profile')
+            }, 2000)
+
+        } else {
+            ElMessage.error(response.data.msg || '设置位置失败')
+        }
+    } catch (error) {
+        console.error('设置位置请求失败:', error)
+        ElMessage.error(error.response?.data?.msg || '网络请求异常')
     }
-  }catch (error) {
-    console.error('设置位置请求失败:', error)
-    ElMessage.error(error.response?.data?.msg || '网络请求异常')
-  }
 }
 </script>
 
@@ -151,7 +137,7 @@ const confirmCoordinates = async() => {
     min-height: 400px;
     width: 90%;
     border-radius: 8px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
 .title-box {
@@ -161,6 +147,7 @@ const confirmCoordinates = async() => {
     gap: 10px;
     text-align: center;
 }
+
 .guide-icon {
     font-size: 100px;
     color: #409EFF;
@@ -175,11 +162,12 @@ const confirmCoordinates = async() => {
     flex-wrap: wrap;
     gap: 10px;
 }
+
 .coordinates-box {
     display: flex;
     flex-direction: row;
     width: 100%;
-    gap:10px;
+    gap: 10px;
     flex-wrap: wrap;
     justify-content: center;
     align-items: center;
@@ -197,15 +185,16 @@ const confirmCoordinates = async() => {
     text-align: right;
     font-weight: 500;
 }
-.setter-input-item input{
+
+.setter-input-item input {
     min-width: 130px;
 }
-.btn-box{
+
+.btn-box {
     display: flex;
     width: 100%;
     justify-content: center;
     align-items: center;
     gap: 20px;
 }
-
 </style>
