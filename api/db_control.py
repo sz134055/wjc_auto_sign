@@ -417,7 +417,7 @@ class UserLogDBControl():
     async def add_log(self,user_info:dict,signTime:str,isSuccess:bool):
         return await self.db.update( 
             f"INSERT INTO {self.table_name}(account,email,coordinate,position,signTime,status) VALUES(%s,%s,%s,%s,%s,%s)",
-            (user_info['account'],user_info['email'],user_info['coordinate'],user_info['position'],signTime,1 if isSuccess else 0)
+            (user_info['account'],user_info['email'],user_info['coordinate'],user_info['position'],signTime if signTime else getTime(),1 if isSuccess else 0)
         )
 
     async def get_logs(self,account:str) -> list:
@@ -434,4 +434,7 @@ async def getWebDBControl(mysql_pool:bool=False):
     await DB.init_db(mysql_pool=mysql_pool)
     return DB
 
-
+async def getUserLogDBControl():
+    DB = UserLogDBControl()
+    await DB.init_db()
+    return DB
