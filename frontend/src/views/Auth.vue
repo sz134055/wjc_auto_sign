@@ -1,7 +1,7 @@
 <template>
   <div class="main-page">
     <LoadingPage v-show="isLoading" />
-    <div class="auth-box" v-show="isReg">
+    <div class="auth-box" v-show="isReg && !isLoading">
         <div class="global-title-large">注册</div>
         <div class="form-input-item">
             <el-icon class="global-icon"><Message /></el-icon>
@@ -18,7 +18,7 @@
         <button class="global-btn" @click="handleRegister">注册</button>
         <a @click="isReg = !isReg">我已有账号</a>
     </div>
-    <div class="auth-box" v-show="!isReg">
+    <div class="auth-box" v-show="!isReg && !isLoading">
         <div class="global-title-large">登录</div>
         <div class="form-input-item">
             <el-icon class="global-icon"><Message /></el-icon>
