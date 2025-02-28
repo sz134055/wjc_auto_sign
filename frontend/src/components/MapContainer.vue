@@ -10,7 +10,6 @@
 import { onMounted, onUnmounted, ref, defineEmits, watch } from 'vue'
 import AMapLoader from '@amap/amap-jsapi-loader'
 import LoadingPage from './LoadingPage.vue'
-import { ElMessage } from 'element-plus'
 import axios from 'axios'
 
 const isLoading = ref(true)

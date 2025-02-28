@@ -38,7 +38,6 @@
 import { ref } from 'vue'
 import LoadingPage from '../components/LoadingPage.vue';
 import {User,Message,Lock} from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
 import userStore from '../store'
 const isReg = ref(true)
 const isLoading = ref(false)

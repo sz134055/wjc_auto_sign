@@ -40,7 +40,6 @@ import FooterBar from '../components/FooterBar.vue';
 import { ref, watch } from 'vue'
 import axios from 'axios';
 import userStore from '../store';
-import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 
 
