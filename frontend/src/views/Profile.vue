@@ -9,6 +9,11 @@
           <WindPower />
         </el-icon>
         <span class="global-title-large">CONSTRUTING</span>
+        <span>即将实现：</span>
+        <ul>
+          <li>显示你已提交的签到信息</li>
+          <li>显示签到记录</li>
+        </ul>
       </div>
       <div class="func-box">
         <div class="spec-btn-box global-btn" @click="goToGuide">
