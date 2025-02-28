@@ -134,7 +134,7 @@ async def emailCheck(account:str=Form(),emailVCode:str=Form()):
 
 
 @app.post('/submit')
-async def submit(account:str=Form(),coordinate:str=Form(),position:str=Form()):
+async def submit(account:str=Form(),coordinate:str=Form(),position:str=Form(),distance:str=Form()):
     global eDB
     if(await is_db_locked()):
         return JSONResponse({'code':'fail','msg':f'当前时间段 ({TIME_SET["start"]} - {TIME_SET["end"]}) 无法注册，请在非此时间段再重试'})
@@ -144,9 +144,9 @@ async def submit(account:str=Form(),coordinate:str=Form(),position:str=Form()):
     if await eDB.is_user_pass(account):
         user_info = await eDB.finish_reg(account)
         DB = await getUserDBControl()
-        await DB.add_user(account,user_info['pswd'],user_info['email'],coordinate,position)
+        await DB.add_user(account,user_info['pswd'],user_info['email'],coordinate,position,distance)
         await DB.quit()
-        await user_mail('自动签到注册成功',await reg_mail_gen({'account':account,'email':user_info['email'],'coordinate':coordinate,'position':position}),user_info['email'])
+        await user_mail('自动签到注册成功',await reg_mail_gen({'account':account,'email':user_info['email'],'coordinate':coordinate,'position':position,'distance':distance}),user_info['email'])
         logger.info(f'用户 {account} 注册成功')
         return JSONResponse(content={'code':'ok','msg':'注册成功'})
     else:

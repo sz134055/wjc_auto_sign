@@ -11,7 +11,7 @@ __cf.read(os_path.join(CURRENT_PATH,SETTING_FILE_PATH),encoding="utf-8")
 DB_CHOOSE = "mysql"
 TABLE_SET = {
     'user':__cf.get("db","user_table"),
-    'web': __cf.get("db","web_table")
+    'web': __cf.get("db","web_table"),
 }
 # SQLITE
 SQLITE_SET = {
@@ -70,7 +70,8 @@ USER_DB_INIT_SQL = f'''
         total INTEGER DEFAULT 0,
         active INTEGER DEFAULT 1,
         failDays INTEGER DEFAULT 0,
-        position TEXT NOT NULL
+        position TEXT NOT NULL,
+        distance TEXT NOT NULL
     );
 '''
 NOTICE_DB_INIT_SQL = f'''
@@ -79,5 +80,17 @@ NOTICE_DB_INIT_SQL = f'''
         title TEXT NOT NULL,
         content TEXT NOT NULL,
         time TEXT NOT NULL
+    );
+'''
+
+USER_LOG_DB_INIT_SQL = f'''
+    CREATE TABLE IF NOT EXISTS {TABLE_SET['user']}_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        account TEXT NOT NULL,
+        email TEXT NOT NULL,
+        coordinate TEXT NOT NULL,
+        position TEXT NOT NULL,
+        signTime TEXT NOT NULL,
+        status INTEGER DEFAULT 0
     );
 '''
