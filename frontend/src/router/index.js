@@ -23,18 +23,18 @@ const routes = [
         path: '/profile',
         name: 'profile',
         component: () => import('../views/Profile.vue'),
-        meta: { requiresAuth: false }
+        meta: { requiresAuth: true }
     },{
         path: '/guide',
         name: 'guide',
         component: () => import('../views/SignGuide.vue'),
-        meta: { requiresAuth: false }
+        meta: { requiresAuth: true }
     },
     {
         path: '/result',
         name:'resultPage',
         component: () => import('../views/RegResult.vue'),
-        meta: { requiresAuth: false }
+        meta: { requiresAuth: true }
     }
 ]
 const router = createRouter({
