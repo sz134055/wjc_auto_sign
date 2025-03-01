@@ -1,12 +1,11 @@
+import argparse
 from fastapi import FastAPI,Form
-from fastapi.responses import HTMLResponse,JSONResponse,Response
+from fastapi.responses import FileResponse,JSONResponse
 from datetime import datetime,time,timedelta
 from fastapi.staticfiles import StaticFiles
 from api.setting import TIME_SET,REMOTE_API_TOKEN,DB_CHOOSE,ADMIN_ACCOUNT,ADDRESS_COORD,AMAP_SET
 from api.mail_control import user_mail,reg_mail_gen
 from api.db_control import getWebDBControl,getTime,getUserDBControl
-import aiofiles
-from pathlib import Path
 import os
 from api.core import wjcAccountSignTest
 import uvicorn
@@ -45,18 +44,7 @@ async def is_db_locked() -> bool:
         return False
 
 
-@app.get('/',response_class=HTMLResponse)
-async def index():
-    async with aiofiles.open(Path(NOW_FILE_PATH+"/frontend/dist/index.html"),encoding='utf-8') as f:
-        return HTMLResponse(await f.read(),status_code=200)
-
-
-@app.get('/favicon.ico')
-async def get_favicon():
-    async with aiofiles.open(Path(NOW_FILE_PATH+"/frontend/dist/favicon.ico"),'rb') as f:
-        return Response(await f.read(),media_type='image/x-icon')
-
-@app.post('/checkAccount')
+@app.post('/api/checkAccount')
 async def check_account(account:str=Form(),pswd:str=Form(),email:str=Form()):
     global eDB
     if(await is_db_locked()):
@@ -97,7 +85,7 @@ async def check_account(account:str=Form(),pswd:str=Form(),email:str=Form()):
     else:
         return JSONResponse(content={'code':'fail','msg':'账号或密码错误，如果你确定账号密码无误，请过段时间再重试'})
 
-@app.post('/stopAccount')
+@app.post('/api/stopAccount')
 async def cancel_reg(account:str=Form(),pswd:str=Form()):
     if(await is_db_locked()):
         logger.info(f'用户 {account} 尝试在非开放时间点取消签到注册')
@@ -117,7 +105,7 @@ async def cancel_reg(account:str=Form(),pswd:str=Form()):
         logger.error(f'用户 {account} 取消注册签到失败，未注册自动签到或账号密码错误')
         await DB.quit()
         return JSONResponse(content={'code':'fail','msg':'未注册自动签到或账号密码错误'})
-@app.post('/emailCheck')
+@app.post('/api/emailCheck')
 async def emailCheck(account:str=Form(),emailVCode:str=Form()):
     global eDB
     if(await is_db_locked()):
@@ -133,7 +121,7 @@ async def emailCheck(account:str=Form(),emailVCode:str=Form()):
         return JSONResponse(content={'code':'fail','msg':'验证码错误或已过期！'})
 
 
-@app.post('/submit')
+@app.post('/api/submit')
 async def submit(account:str=Form(),coordinate:str=Form(),position:str=Form(),distance:str=Form()):
     global eDB
     if(await is_db_locked()):
@@ -153,7 +141,7 @@ async def submit(account:str=Form(),coordinate:str=Form(),position:str=Form(),di
         logger.error(f'用户 {account} 注册失败，未通过验证')
         return JSONResponse(content={'code':'fail','msg':'当前账号未通过验证'})
 
-@app.post('/login')
+@app.post('/api/login')
 async def login(account:str=Form(),pswd:str=Form()):
     DB = await getUserDBControl()
     user_info = await DB.get_user_info(account)
@@ -172,7 +160,7 @@ async def login(account:str=Form(),pswd:str=Form()):
         return JSONResponse(content={'code':'fail','msg':'账号或密码错误'})
 
 
-@app.get('/getSiteInfo')
+@app.get('/api/getSiteInfo')
 async def get_site_info():
     """ 响应一些信息给前端 """
     DB = await getUserDBControl()
@@ -180,7 +168,7 @@ async def get_site_info():
     await DB.quit()
     return JSONResponse(content={'code':'ok','msg':'成功获取站点信息','info':{'admin':ADMIN_ACCOUNT,'nums':nums}})
 
-@app.get('/noticeGet')
+@app.get('/api/noticeGet')
 async def noticeGet():
     """
     用于获网站上的提醒信息
@@ -190,7 +178,7 @@ async def noticeGet():
     await DB.quit()
     return JSONResponse(content=res)
 
-@app.post('/noticePush')
+@app.post('/api/noticePush')
 async def noticePush(api_token:str=Form(),title:str=Form(),content:str=Form(),time:int=Form(),dayDelay:int=Form()):
     """
     用于向网站推送提醒信息
@@ -224,7 +212,7 @@ async def noticePush(api_token:str=Form(),title:str=Form(),content:str=Form(),ti
     return JSONResponse(content={'code':'ok','msg':'推送成功'})
 
 
-@app.get('/checkAlive')
+@app.get('/api/checkAlive')
 async def checkAlive():
     """ 响应一些信息给前端 """
     DB = await getUserDBControl()
@@ -233,7 +221,7 @@ async def checkAlive():
     return JSONResponse(content={'code':'ok','msg':'成功获取站点信息','info':{'admin':ADMIN_ACCOUNT,'nums':nums}})
 
 
-@app.get('/getAmap')
+@app.get('/api/getAmap')
 async def get_amap():
     return JSONResponse(content={
         'code':'ok',
@@ -247,7 +235,19 @@ async def get_amap():
         }
     )
 
+@app.get("/{full_path:path}")
+async def catch_all(full_path: str):
+    return FileResponse("frontend/dist/index.html")
 
 if __name__ == '__main__':
-    uvicorn.run(app='web_app:app',host='0.0.0.0',port=8000,reload=True)
+    # 创建参数解析器
+    parser = argparse.ArgumentParser(description='启动自动签到服务')
+    parser.add_argument('--port', 
+                        type=int, 
+                        default=8000,
+                        help='服务监听端口 (默认: 8000)')
+    
+    # 解析命令行参数
+    args = parser.parse_args()
+    uvicorn.run(app='web_app:app',host='0.0.0.0',port=args.port,reload=True)
     #uvicorn.run(app='web_app:app',host='0.0.0.0',port=443,ssl_keyfile='/home/admin/certificate/certkey.key',ssl_certfile='/home/admin/certificate/certfile.cer')

@@ -7,13 +7,14 @@
           <span class="global-title-large">Auto</span>
           <span class="global-title-large">Check-In</span>
         </div>
-        <span>高效、全自动的UWH在线签到打卡服务</span>
+        <span>高效、全自动的<a href="https://www.uwh.edu.cn/" class="modern-link">UWH</a>在线签到打卡服务</span>
         <button class="global-btn" @click="authBtn">注册或登录</button>
         <!-- <span>当前运行状态：正常</span> -->
       </div>
       <span class="scroll-tip">向下滑动查看更多说明</span>
     </div>
     <div class="introduction-box">
+      <Version />
       <span class="global-title-large">说明</span>
       <div class="introductions">
         <div class="introduction-card">
@@ -35,9 +36,9 @@
         <div class="introduction-card">
           <span>额外说明</span>
           <ul>
-            <li>将会明文存储你的密码,不要使用常用密码</li>
+            <li>将会明文存储你的密码</li>
             <li>时刻关注你的签到状态</li>
-            <li>推荐自搭建脚本使用保障账户安全</li>
+            <li>推荐自搭建脚本使用以保障账户安全</li>
           </ul>
         </div>
       </div>
@@ -49,7 +50,7 @@
 <script setup>
 import { useRouter } from 'vue-router';
 import FooterBar from '../components/FooterBar.vue';
-
+import Version from '../components/Version.vue';
 const router = useRouter();
 const authBtn = () => {
   router.push('/auth');
@@ -152,5 +153,19 @@ const authBtn = () => {
     opacity: 0;
     visibility: hidden;
   }
+}
+.modern-link {
+  color: #2175d4; /* 图片中的颜色 */
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.modern-link:hover {
+  color: #186fe2; /* 鼠标悬停时的颜色 */
+}
+
+.modern-link:active {
+  color: #1349ad; /* 点击时的颜色 */
 }
 </style>

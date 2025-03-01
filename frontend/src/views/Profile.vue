@@ -1,7 +1,7 @@
 <template>
   <div class="main-page">
     <div class="nav-bar">
-      <span class="global-title-large">PROFILE</span>
+      <span class="title-large">PROFILE</span>
     </div>
     <div class="main-content">
         <div class="title-bar">
@@ -67,6 +67,11 @@ onMounted(() => {
     border-radius: 50px;
     font-size: 1.4em;
     margin-top: 20px;
+}
+.title-large{
+  font-size: 3em;
+  font-weight: 900;
+  color: #66FCF1;
 }
 .icon-large{
   font-size: 100px;

@@ -1,5 +1,6 @@
 <template>
-    <div class="main-page">
+    <LoadingPage v-show="isLoading" />
+    <div class="main-page" v-show="!isLoading">
         <div class="title-box">
             <el-icon class="global-icon guide-icon">
                 <LocationInformation />
@@ -41,7 +42,7 @@ import { ref, watch } from 'vue'
 import axios from 'axios';
 import userStore from '../store';
 import { useRouter } from 'vue-router'
-
+import LoadingPage from '../components/LoadingPage.vue';
 
 // 坐标数据
 const currentLng = ref(null)
@@ -51,6 +52,7 @@ const currentDistance = ref(0)
 const mapRef = ref()
 const user = userStore()
 const router = useRouter()
+const isLoading = ref(false)
 
 const goToSchool = () => {
     mapRef.value?.updateCoordinates(118.265303, 31.359218)
@@ -80,6 +82,7 @@ watch([currentLng, currentLat], ([newLng, newLat]) => {
 
 // 确认坐标提交
 const confirmCoordinates = async () => {
+    isLoading.value = true
     const lng = currentLng.value
     const lat = currentLat.value
     const name = currentName.value
@@ -92,7 +95,7 @@ const confirmCoordinates = async () => {
     console.log([lng, lat, name, distance].join(','))
     try {
         const response = await axios.post(
-            '/submit',
+            '/api/submit',
             {
                 account: user.getAccount,
                 coordinate: `${lng},${lat}`,
@@ -117,6 +120,8 @@ const confirmCoordinates = async () => {
     } catch (error) {
         console.error('设置位置请求失败:', error)
         ElMessage.error(error.response?.data?.msg || '网络请求异常')
+    }finally {
+        isLoading.value = false
     }
 }
 </script>
@@ -131,7 +136,6 @@ const confirmCoordinates = async () => {
     align-items: center;
     gap: 20px;
 }
-
 .map-box {
     min-height: 400px;
     width: 90%;

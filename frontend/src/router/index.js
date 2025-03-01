@@ -33,8 +33,7 @@ const routes = [
     {
         path: '/result',
         name:'resultPage',
-        component: () => import('../views/RegResult.vue'),
-        meta: { requiresAuth: true }
+        component: () => import('../views/RegResult.vue')
     }
 ]
 const router = createRouter({
@@ -44,8 +43,8 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
-    const isLoginIn = userStore.getIsLogin;
-    if (requiresAuth && !isLoginIn) {
+    const user = userStore()
+    if (requiresAuth && !user.getIsLogin) {
         next('/auth');
     }  else {
         next();

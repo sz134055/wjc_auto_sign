@@ -35,12 +35,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onBeforeMount, ref } from 'vue'
 import LoadingPage from '../components/LoadingPage.vue';
 import {User,Message,Lock} from '@element-plus/icons-vue'
 import axios from 'axios';
 import userStore from '../store'
 import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 
 const isReg = ref(true)
 const isLoading = ref(false)
@@ -58,7 +59,7 @@ const handleRegister = async () => {
 
   try {
     isLoading.value = true
-    const response = await axios.post('/checkAccount', {
+    const response = await axios.post('/api/checkAccount', {
       email: email.value,
       account: account.value,
       pswd: pswd.value
@@ -69,9 +70,16 @@ const handleRegister = async () => {
     })
 
     if (response.data.code === 'ok') {
-      ElMessage.success('账号检测成功')
-      user.setLogin(email.value,account.value)
-      router.push('/result')
+      if(response.data.info && response.data.info.update){
+        ElMessage.success('已注册过了将会自动登录')
+        user.setLogin(email.value,account.value)
+        router.push('/profile')
+      }else{
+        ElMessage.success('账号检测成功')
+        user.setLogin(email.value,account.value)
+        user.isNewReg = true
+        router.push('/result')
+      }
     } else {
       ElMessage.error(response.data.msg || '账号检测失败')
     }
@@ -90,7 +98,7 @@ const handleLogin = async () => {
   }
   try {
     isLoading.value = true
-    const response = await axios.post('/login', {
+    const response = await axios.post('/api/login', {
       account: account.value,
       pswd: pswd.value
     }, {
@@ -115,6 +123,13 @@ const handleLogin = async () => {
     isLoading.value = false
   }
 }
+
+onBeforeMount(()=>{
+  if(user.getIsLogin){
+    ElMessage.success('你已登录')
+    router.push('/profile')
+  }
+})
 
 </script>
 

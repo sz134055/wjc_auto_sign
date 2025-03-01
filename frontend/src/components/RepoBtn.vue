@@ -57,7 +57,7 @@ defineProps({
 .logo-circle {
   width: 58px;
   height: 58px;
-  border: 2px solid #66FCF1;
+  border-right: 2px solid #66FCF1;
   border-radius: 50%;
   overflow: hidden; /* 隐藏超出圆框的部分 */
 }

@@ -2,10 +2,10 @@ import { defineStore } from 'pinia'
 
 const userStore = defineStore('user', {
   state: () => ({
-    email: '',
-    account: '',
-    loginTime: 0,
-    isLogin: false,
+    email: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).email : '',
+    account: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).account : '',
+    loginTime: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).loginTime : 0,
+    isNewReg: false
   }
   ),
   getters: {
@@ -30,7 +30,11 @@ const userStore = defineStore('user', {
       this.email = email
       this.account = account
       this.loginTime = Date.now()
-      this.isLogin = true
+      localStorage.setItem('user', JSON.stringify({
+        email,
+        account,
+        loginTime: this.loginTime
+      }))
     }
   },
 })

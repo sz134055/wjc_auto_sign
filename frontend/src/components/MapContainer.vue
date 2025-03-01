@@ -219,7 +219,7 @@ const initAMap = () => {
 onMounted(() => {
     isLoading.value = true
 
-    axios.get('/getAmap')
+    axios.get('/api/getAmap')
         .then((response) => {
             if (response.data.code === 'ok') {
                 AMAP_INFO.value = response.data.info

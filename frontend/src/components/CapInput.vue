@@ -48,7 +48,7 @@ const handlePaste = (e) => {
 }
 const checkCap =async (cap) => {
     try{
-        const response = await axios.post('/emailCheck', {
+        const response = await axios.post('/api/emailCheck', {
         account: user.account,
         emailVCode: cap
         }, {

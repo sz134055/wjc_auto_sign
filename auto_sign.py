@@ -196,7 +196,7 @@ class AutoSign:
                             'active':user['active'],
                         })
                     mail_content = await mail_control.admin_mail_gen(info)
-                    #await mail_control.admin_mail('签到状态', mail_content)
+                    await mail_control.admin_mail('签到状态', mail_content)
                     # 退出数据库
                     if self.user_db:
                         await self.user_db.quit()  
