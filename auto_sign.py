@@ -104,7 +104,9 @@ class AutoSign:
                     'account':u['account'],
                     'pswd':u['pswd'],
                     'coordinate':u['coordinate'],
-                    'email':u['email']
+                    'email':u['email'],
+                    'position':u['position'],
+                    'distance':u['distance']
                 }
                 self.q_user.put(u_info)
         logger.info(f"待签到用户数 {self.q_user.qsize()} 个")
@@ -175,7 +177,7 @@ class AutoSign:
                 if start_time <= current_time <= end_time:
                     # 仅在开始签到时连接数据库，并在完成签到后退出，防止因长时间等待导致数据库断连引发后续问题
                     self.user_db = await getUserDBControl(mysql_pool=True)
-                    self.user_db_log = await getUserLogDBControl()
+                    self.user_log_db = await getUserLogDBControl()
                     logger.info('签到开始')
                     job_start_time = time_t()    # 耗时计时器起点
                     await self.sign_task_create()
@@ -194,14 +196,14 @@ class AutoSign:
                             'active':user['active'],
                         })
                     mail_content = await mail_control.admin_mail_gen(info)
-                    await mail_control.admin_mail('签到状态', mail_content)
+                    #await mail_control.admin_mail('签到状态', mail_content)
                     # 退出数据库
                     if self.user_db:
                         await self.user_db.quit()  
                         self.user_db = None
-                    if self.user_db_log:
-                        await self.user_db_log.quit()
-                        self.user_db_log = None
+                    if self.user_log_db:
+                        await self.user_log_db.quit()
+                        self.user_log_db = None
                     break
                 else:
                     TIME_CHCECK_WAIT = int(datetime.combine(date.today(),start_time).timestamp()-now.timestamp())

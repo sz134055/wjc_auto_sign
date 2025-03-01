@@ -2,9 +2,9 @@ import aiosqlite
 import aiomysql
 from time import time
 from datetime import datetime
-from api.setting import USER_DB_INIT_SQL,FAIL_MAX_TRY_DAYS,NOTICE_DB_INIT_SQL,DB_CHOOSE,TABLE_SET,SQLITE_SET,MYSQL_SET,MYSQL_INIT_SQL,AYN_MAX_USERS
+from api.setting import USER_DB_INIT_SQL,FAIL_MAX_TRY_DAYS,NOTICE_DB_INIT_SQL,DB_CHOOSE,TABLE_SET,SQLITE_SET,MYSQL_SET,MYSQL_INIT_SQL,AYN_MAX_USERS, USER_LOG_DB_INIT_SQL
 from api.log_setting import logger
-from typing import Iterable, Any, Optional, List
+from typing import Optional, List
 
 
 def getTime():
@@ -412,7 +412,7 @@ class UserLogDBControl():
     async def init_db(self):
         self.db = MysqlPoolControl()
         await self.db.connect()
-        await self.db.update(USER_DB_INIT_SQL.replace("AUTOINCREMENT","AUTO_INCREMENT"))
+        await self.db.update(USER_LOG_DB_INIT_SQL.replace("AUTOINCREMENT","AUTO_INCREMENT"))
 
     async def add_log(self,user_info:dict,signTime:str,isSuccess:bool):
         return await self.db.update( 
@@ -423,6 +423,10 @@ class UserLogDBControl():
     async def get_logs(self,account:str) -> list:
         res = await self.db.query(f"SELECT * FROM {self.table_name} WHERE account = %s ORDER BY id DESC LIMIT 10", (account,))
         return res
+    
+    async def quit(self):
+        if self.db:
+            await self.db.close()
 
 async def getUserDBControl(mysql_pool:bool=False):
     DB = UserDBControl()

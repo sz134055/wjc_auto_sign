@@ -207,7 +207,7 @@ class WJC:
             "dm": dm,
             "sjdm": sjdm,
             "zb": coordinate,
-            "wz": ADDRESS_NAME,
+            "wz": address,
             "ly": "lbs",
             "qdwzZt": "0",
             "fwwDistance": distance,    #距离签到位置距离
