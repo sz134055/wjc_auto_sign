@@ -78,6 +78,8 @@ class AutoSign:
                     'pswd':pswd,
                     'coordinate':coordinate,
                     'email':email,
+                    'position':position,
+                    'distance':distance,
                     'info':str(info),
                     'times_try':1
                 })

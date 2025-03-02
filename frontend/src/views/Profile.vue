@@ -33,6 +33,7 @@ import { useRouter } from 'vue-router';
 import { onMounted } from 'vue';
 import FooterBar from '../components/FooterBar.vue';
 import { AddLocation, WindPower } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
 
 const router = useRouter();
 
