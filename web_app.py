@@ -22,35 +22,9 @@ app.mount("/assets", StaticFiles(directory="frontend/dist/assets"), name="assets
 
 eDB = RegControl()
 
-async def is_db_locked() -> bool:
-    if DB_CHOOSE == 'mysql':
-        # 如果选择Mysql作为数据库则不锁定
-        return False
-
-    # 获取当前时间
-    now = datetime.now()
-    # 增加1s的延迟
-    now += timedelta(seconds=1)
-    current_time = now.time()
-    
-    # 将时间区间转换为datetime.time对象
-    start_time = time(hour=int(TIME_SET['start'].split(':')[0]), minute=int(TIME_SET['start'].split(':')[1]))
-    end_time = time(hour=int(TIME_SET['end'].split(':')[0]), minute=int(TIME_SET['end'].split(':')[1]))
-
-    if start_time <= current_time <= end_time:
-        # 处于签到时间点，禁止数据库操作
-        return True
-    else:
-        return False
-
-
 @app.post('/api/checkAccount')
 async def check_account(account:str=Form(),pswd:str=Form(),email:str=Form()):
     global eDB
-    if(await is_db_locked()):
-        logger.info(f'用户 {account} 尝试在非开放时间点注册')
-        return JSONResponse({'code':'fail','msg':f'当前时间段 ({TIME_SET["start"]} - {TIME_SET["end"]}) 无法注册，请在非此时间段再重试'})
-    
     await eDB.init_db()
 
     if(await eDB.check_user(account,pswd) or await wjcAccountSignTest(account,pswd)):
@@ -85,12 +59,10 @@ async def check_account(account:str=Form(),pswd:str=Form(),email:str=Form()):
     else:
         return JSONResponse(content={'code':'fail','msg':'账号或密码错误，如果你确定账号密码无误，请过段时间再重试'})
 
+
+
 @app.post('/api/stopAccount')
 async def cancel_reg(account:str=Form(),pswd:str=Form()):
-    if(await is_db_locked()):
-        logger.info(f'用户 {account} 尝试在非开放时间点取消签到注册')
-       
-        return JSONResponse({'code':'fail','msg':f'当前时间段 ({TIME_SET["start"]} - {TIME_SET["end"]}) 无法取消，请在非此时间段再重试'})
     DB = await getUserDBControl()
     if(await DB.is_user_exist(account) and await wjcAccountSignTest(account,pswd)):
         if await DB.deactive_user(account=account,ban_by_user=True):
@@ -108,9 +80,6 @@ async def cancel_reg(account:str=Form(),pswd:str=Form()):
 @app.post('/api/emailCheck')
 async def emailCheck(account:str=Form(),emailVCode:str=Form()):
     global eDB
-    if(await is_db_locked()):
-        return JSONResponse({'code':'fail','msg':f'当前时间段 ({TIME_SET["start"]} - {TIME_SET["end"]}) 无法注册，请在非此时间段再重试'})
-    
     await eDB.init_db()
 
     if await eDB.check_email(account,emailVCode):
@@ -124,9 +93,6 @@ async def emailCheck(account:str=Form(),emailVCode:str=Form()):
 @app.post('/api/submit')
 async def submit(account:str=Form(),coordinate:str=Form(),position:str=Form(),distance:str=Form()):
     global eDB
-    if(await is_db_locked()):
-        return JSONResponse({'code':'fail','msg':f'当前时间段 ({TIME_SET["start"]} - {TIME_SET["end"]}) 无法注册，请在非此时间段再重试'})
-    
     await eDB.init_db()
 
     if await eDB.is_user_pass(account):
@@ -156,6 +122,15 @@ async def login(account:str=Form(),pswd:str=Form()):
                 }
             }
         )
+    else:
+        return JSONResponse(content={'code':'fail','msg':'账号或密码错误'})
+
+
+@app.post('/api/checkWjcAccount')
+async def check_account(account:str=Form(),pswd:str=Form()):
+    res = await wjcAccountSignTest(account,pswd)
+    if res:
+        return JSONResponse(content={'code':'ok','msg':'账号密码正确'})
     else:
         return JSONResponse(content={'code':'fail','msg':'账号或密码错误'})
 
@@ -246,8 +221,20 @@ if __name__ == '__main__':
                         type=int, 
                         default=8000,
                         help='服务监听端口 (默认: 8000)')
-    
+    parser.add_argument('--host', 
+                        type=str, 
+                        default='0.0.0.0',
+                        help='服务监听地址 (默认: 0.0.0.0)')
+    parser.add_argument('--ssl_keyfile', 
+                        default=None,
+                        help='SSL 私钥文件路径')
+    parser.add_argument('--ssl_certfile', 
+                        default=None,
+                        help='SSL 证书文件路径')
+    parser.add_argument('--reload',
+                        default=True,
+                        help='是否启用热重载功能 (默认: True)')
+
     # 解析命令行参数
     args = parser.parse_args()
-    uvicorn.run(app='web_app:app',host='0.0.0.0',port=args.port,reload=True)
-    #uvicorn.run(app='web_app:app',host='0.0.0.0',port=443,ssl_keyfile='/home/admin/certificate/certkey.key',ssl_certfile='/home/admin/certificate/certfile.cer')
+    uvicorn.run(app='web_app:app',host=args.host,port=args.port,reload=args.reload,ssl_certfile=args.ssl_certfile,ssl_keyfile=args.ssl_keyfile)
