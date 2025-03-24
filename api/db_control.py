@@ -2,9 +2,9 @@ import aiosqlite
 import aiomysql
 from time import time
 from datetime import datetime
-from api.setting import USER_DB_INIT_SQL,FAIL_MAX_TRY_DAYS,NOTICE_DB_INIT_SQL,DB_CHOOSE,TABLE_SET,SQLITE_SET,MYSQL_SET,MYSQL_INIT_SQL,AYN_MAX_USERS
+from api.setting import USER_DB_INIT_SQL,FAIL_MAX_TRY_DAYS,NOTICE_DB_INIT_SQL,DB_CHOOSE,TABLE_SET,SQLITE_SET,MYSQL_SET,MYSQL_INIT_SQL,AYN_MAX_USERS, USER_LOG_DB_INIT_SQL
 from api.log_setting import logger
-from typing import Iterable, Any, Optional, List
+from typing import Optional, List
 
 
 def getTime():
@@ -246,7 +246,7 @@ class UserDBControl():
             logger.info(f"更新用户{account}信息失败[账号或邮箱不存在 {email}]")
             return {'code':'fail','msg':f"更新用户{account}信息失败[账号或邮箱不存在 {email}]"}
 
-    async def add_user(self, account:str, pswd:str, email:str, coordinate:str):
+    async def add_user(self, account:str, pswd:str, email:str, coordinate:str,position:str,distance:str):
         db = self.db
         account_res = await db.query_one(f"SELECT * FROM {TABLE_SET['user']} WHERE account = %s", (account,))
         email_res = await db.query_one(f"SELECT * FROM {TABLE_SET['user']} WHERE email = %s", (email,))
@@ -254,7 +254,7 @@ class UserDBControl():
             await self.update_user(account, pswd, email, coordinate)
             logger.info(f"添加或更新用户{account} 添加成功")
         else:
-            await db.update(f"INSERT INTO {TABLE_SET['user']} (account,pswd,email,coordinate,updateTime,signTime,success,total,active) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)", (account, pswd, email, coordinate, getTime(), '0', 0, 0,1))
+            await db.update(f"INSERT INTO {TABLE_SET['user']} (account,pswd,email,coordinate,updateTime,signTime,success,total,active,position,distance) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", (account, pswd, email, coordinate, getTime(), '0', 0, 0,1,position,distance))
             logger.info(f"添加或更新用户{account} 添加成功")
             return {'code':'ok','msg':'新用户{account} 添加成功'}
     
@@ -368,7 +368,7 @@ class WebDBControl():
         if mysql_pool or DB_CHOOSE == 'mysql':
             self.db = MysqlPoolControl()
             await self.db.connect()
-            await self.db.update(USER_DB_INIT_SQL.replace("AUTOINCREMENT","AUTO_INCREMENT"))    # 语法区别修补
+            await self.db.update(NOTICE_DB_INIT_SQL.replace("AUTOINCREMENT","AUTO_INCREMENT"))    # 语法区别修补
         elif DB_CHOOSE == 'sqlite':
             self.db = SqliteControl()
             await self.db.set_path(self.SQLITE_PATH)
@@ -403,6 +403,31 @@ class WebDBControl():
     async def quit(self):
         if self.db:
             await self.db.close()
+
+class UserLogDBControl():
+    def __init__(self):
+        self.db = None
+        self.table_name = f"{TABLE_SET['user']}_log"
+
+    async def init_db(self):
+        self.db = MysqlPoolControl()
+        await self.db.connect()
+        await self.db.update(USER_LOG_DB_INIT_SQL.replace("AUTOINCREMENT","AUTO_INCREMENT"))
+
+    async def add_log(self,user_info:dict,signTime:str,isSuccess:bool):
+        return await self.db.update( 
+            f"INSERT INTO {self.table_name}(account,email,coordinate,position,signTime,status) VALUES(%s,%s,%s,%s,%s,%s)",
+            (user_info['account'],user_info['email'],user_info['coordinate'],user_info['position'],signTime if signTime else getTime(),1 if isSuccess else 0)
+        )
+
+    async def get_logs(self,account:str) -> list:
+        res = await self.db.query(f"SELECT * FROM {self.table_name} WHERE account = %s ORDER BY id DESC LIMIT 10", (account,))
+        return res
+    
+    async def quit(self):
+        if self.db:
+            await self.db.close()
+
 async def getUserDBControl(mysql_pool:bool=False):
     DB = UserDBControl()
     await DB.init_db(mysql_pool=mysql_pool)
@@ -413,4 +438,7 @@ async def getWebDBControl(mysql_pool:bool=False):
     await DB.init_db(mysql_pool=mysql_pool)
     return DB
 
-
+async def getUserLogDBControl():
+    DB = UserLogDBControl()
+    await DB.init_db()
+    return DB

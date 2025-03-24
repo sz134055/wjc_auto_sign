@@ -196,7 +196,7 @@ class WJC:
             logger.error(f"{msg['msg']}\n{msg['info']}")
             return msg
 
-    async def sign(self,coordinate:str,dm:str,sjdm:str):
+    async def sign(self,coordinate:str,dm:str,sjdm:str,address:str,distance:str):
         api = 'https://ehall.uwh.edu.cn/student/content/student/sign/stu/sign'
         params_load = {
             '_t_s_':self.__timeGen()
@@ -207,10 +207,10 @@ class WJC:
             "dm": dm,
             "sjdm": sjdm,
             "zb": coordinate,
-            "wz": ADDRESS_NAME,
+            "wz": address,
             "ly": "lbs",
             "qdwzZt": "0",
-            "fwwDistance": "15",    #距离签到位置距离
+            "fwwDistance": distance,    #距离签到位置距离
             "operationType": "Update"
         }
 

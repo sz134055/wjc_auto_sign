@@ -8,15 +8,15 @@ __cf = ConfigParser()
 __cf.read(os_path.join(CURRENT_PATH,SETTING_FILE_PATH),encoding="utf-8")
 
 # DB
-DB_CHOOSE = __cf.get("db","choose")
+DB_CHOOSE = "mysql"
 TABLE_SET = {
     'user':__cf.get("db","user_table"),
-    'web': __cf.get("db","web_table")
+    'web': __cf.get("db","web_table"),
 }
 # SQLITE
 SQLITE_SET = {
-    'user_db_path':__cf.get("sqlite","user_db_path"),
-    'web_db_path':__cf.get("sqlite","web_db_path")
+    'user_db_path':'',
+    'web_db_path':''
 }
 # MYSQL
 MYSQL_SET = {
@@ -45,6 +45,15 @@ MAIL_SET = {
 ADMIN_ACCOUNT = MAIL_SET['admin'] if MAIL_SET['admin'] else "未设置"
 
 ADDRESS_NAME = __cf.get("signInfo","address_name")
+ADDRESS_COORD = {
+    'lgt': __cf.get("signInfo","longitude"),
+    'lat': __cf.get("signInfo","latitude")
+}
+
+AMAP_SET = {
+    'key': __cf.get("AMAP","key"),
+    'code': __cf.get("AMAP","code")
+}
 
 TIME_CHCECK_WAIT = int(__cf.get("timeSet","check_wait"))
 TIME_SLEEP_WAIT = int(__cf.get("timeSet","sleep_wait"))
@@ -69,7 +78,9 @@ USER_DB_INIT_SQL = f'''
         success INTEGER DEFAULT 0,
         total INTEGER DEFAULT 0,
         active INTEGER DEFAULT 1,
-        failDays INTEGER DEFAULT 0
+        failDays INTEGER DEFAULT 0,
+        position TEXT NOT NULL,
+        distance TEXT NOT NULL
     );
 '''
 NOTICE_DB_INIT_SQL = f'''
@@ -78,5 +89,17 @@ NOTICE_DB_INIT_SQL = f'''
         title TEXT NOT NULL,
         content TEXT NOT NULL,
         time TEXT NOT NULL
+    );
+'''
+
+USER_LOG_DB_INIT_SQL = f'''
+    CREATE TABLE IF NOT EXISTS {TABLE_SET['user']}_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        account TEXT NOT NULL,
+        email TEXT NOT NULL,
+        coordinate TEXT NOT NULL,
+        position TEXT NOT NULL,
+        signTime TEXT NOT NULL,
+        status INTEGER DEFAULT 0
     );
 '''
