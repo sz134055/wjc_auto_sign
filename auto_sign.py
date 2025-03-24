@@ -163,7 +163,7 @@ class AutoSign:
                 await mail_control.user_mail('自动签到停止', mail_content, user['email'])
             
                 logger.info(f"[{user['account']}]发送账号禁用成功")
-        
+
     async def time_check(self):
         while True:
             while True:
@@ -220,6 +220,42 @@ class AutoSign:
             
             logger.info(f'签到结束，总耗时: {(job_end_time-job_start_time):.2f} 秒，等待{TIME_SLEEP_WAIT}')
             await asyncio.sleep(TIME_SLEEP_WAIT)
+
+    async def __aliyun_run(self):
+        # 仅在开始签到时连接数据库，并在完成签到后退出，防止因长时间等待导致数据库断连引发后续问题
+        self.user_db = await getUserDBControl(mysql_pool=True)
+        self.user_log_db = await getUserLogDBControl()
+        logger.info('签到开始')
+        job_start_time = time_t()    # 耗时计时器起点
+        await self.sign_task_create()
+        await self.__fail_user_sign()
+        job_end_time = time_t()      # 耗时计时器终点
+        logger.info('签到结束，开始发送管理员邮件')
+        db = self.user_db
+        users_info = await db.get_users_info()
+        info = []
+        for user in users_info:
+            info.append({
+                'account':user['account'],
+                'status':'是' if (await db.check_user(user['account']))['code'] == 'ok_signed' else '否',
+                'success':user['success'],
+                'total':user['total'],
+                'active':user['active'],
+            })
+        mail_content = await mail_control.admin_mail_gen(info)
+        await mail_control.admin_mail('签到状态', mail_content)
+        # 退出数据库
+        if self.user_db:
+            await self.user_db.quit()  
+            self.user_db = None
+        if self.user_log_db:
+            await self.user_log_db.quit()
+            self.user_log_db = None
+        logger.info(f'签到结束，总耗时: {(job_end_time-job_start_time):.2f} 秒，等待{TIME_SLEEP_WAIT}')
+    
+    @logger.catch
+    def aliyun_run(self):
+        asyncio.run(self.__aliyun_run())
 
     @logger.catch
     def run(self):
