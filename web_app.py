@@ -127,7 +127,7 @@ async def login(account:str=Form(),pswd:str=Form()):
 
 
 @app.post('/api/checkWjcAccount')
-async def check_account(account:str=Form(),pswd:str=Form()):
+async def check_wjc_account(account:str=Form(),pswd:str=Form()):
     res = await wjcAccountSignTest(account,pswd)
     if res:
         return JSONResponse(content={'code':'ok','msg':'账号密码正确'})
